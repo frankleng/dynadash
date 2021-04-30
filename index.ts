@@ -119,7 +119,7 @@ export async function getTableRow(
     if (projection) query['ProjectionExpression'] = projection.join(',');
     if (typeof consistent !== 'undefined') query['ConsistentRead'] = consistent;
     const result = await ddb.send(new GetItemCommand(query));
-    return result.Item ? unmarshall(result.Item) : null;
+    return { ...result, toJs: result.Item ? unmarshall(result.Item) : {} };
   } catch (e) {
     console.error(e);
     return null;
@@ -171,7 +171,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     TableName: PutItemInput['TableName'],
     unmarshalledList: any[],
     predicate?: (item: any) => any,
-  ) {
+  ): Promise<(BatchWriteItemCommandOutput | null)[] | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
 
@@ -259,7 +259,7 @@ export async function queryTableIndex(
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
   },
-): Promise<(QueryOutput & { list: any[] }) | null> {
+): Promise<(QueryOutput & { toJs: () => any[] }) | null> {
   try {
     const client = captureAWSv3Client(new DynamoDBClient({}));
     let query: QueryCommandInput = {
@@ -308,8 +308,8 @@ export async function queryTableIndex(
           : ExpressionAttributeValues;
       }
     }
-    const { Items, ...rest } = await client.send(new QueryCommand(query));
-    return { ...rest, list: Items?.length ? Items.map((row) => unmarshall(row)) : [] };
+    const result = await client.send(new QueryCommand(query));
+    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row)) : []) };
   } catch (e) {
     console.error(e);
     return null;
