@@ -16,13 +16,13 @@ import {
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { captureAWSv3Client } from "aws-xray-sdk-core";
 
-const BATCH_WRITE_RETRY_THRESHOLD = 10;
+export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
 /**
  * @param list
  * @param size
  */
-function chunkList(list: any[], size: number) {
+export function chunkList(list: any[], size: number) {
   return list.reduce((acc: any[], _: any, i: number) => {
     if (i % size === 0) acc.push(list.slice(i, i + size));
     return acc;
@@ -32,16 +32,16 @@ function chunkList(list: any[], size: number) {
 /**
  * @param table
  */
-function logTableNameUndefined(table: string = "") {
+export function logTableNameUndefined(table: string = "") {
   console.error("Table name is undefined. ", table);
   console.trace();
 }
 
-type KeyCondMap = { op: "=" | ">" | "<" | ">=" | "<="; value: string | number };
-type KeyCondExpressionMap = {
+export type KeyCondMap = { op: "=" | ">" | "<" | ">=" | "<="; value: string | number };
+export type KeyCondExpressionMap = {
   [key: string]: string | number | KeyCondMap;
 };
-type FilterExpressionMap = {
+export type FilterExpressionMap = {
   [key: string]:
     | string
     | number
