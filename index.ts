@@ -12,6 +12,7 @@ import {
   QueryCommand,
   UpdateItemCommand,
   UpdateItemCommandInput,
+  QueryOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { captureAWSv3Client } from 'aws-xray-sdk-core';
@@ -258,7 +259,7 @@ export async function queryTableIndex(
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
   },
-) {
+): Promise<(QueryOutput & { list: any[] }) | null> {
   try {
     const client = captureAWSv3Client(new DynamoDBClient({}));
     let query: QueryCommandInput = {
@@ -308,7 +309,7 @@ export async function queryTableIndex(
       }
     }
     const { Items, ...rest } = await client.send(new QueryCommand(query));
-    return { list: Items?.length ? Items.map((row) => unmarshall(row)) : [], ...rest };
+    return { ...rest, list: Items?.length ? Items.map((row) => unmarshall(row)) : [] };
   } catch (e) {
     console.error(e);
     return null;
