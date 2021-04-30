@@ -248,11 +248,13 @@ export const delTableRow = getWriteRequest('DeleteItem');
 /**
  * @param TableName
  * @param IndexName
+ * @param Limit
  * @param params
  */
 export async function queryTableIndex(
   TableName: QueryCommandInput['TableName'],
   IndexName: QueryCommandInput['IndexName'],
+  Limit?: QueryCommandInput['Limit'],
   params?: Partial<Omit<QueryCommandInput, 'TableName' | 'IndexName'>> & {
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
@@ -263,6 +265,7 @@ export async function queryTableIndex(
     let query: QueryCommandInput = {
       TableName,
       IndexName,
+      Limit,
     };
     if (params) {
       const { keyCondExpressionMap, filterExpressionMap, ...rest } = params;
