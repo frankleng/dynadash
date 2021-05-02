@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "DynamoDb helpers",
   "main": "dist/index.js",
   "scripts": {
@@ -14,8 +14,7 @@
   },
   "keywords": [
     "dynamodb",
-    "csv",
-    "export"
+    "query"
   ],
   "author": "Frank Leng",
   "license": "MIT",
