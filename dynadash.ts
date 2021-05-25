@@ -23,8 +23,8 @@ export const BATCH_WRITE_RETRY_THRESHOLD = 10;
  * @param list
  * @param size
  */
-export function chunkList(list: any[], size: number) {
-  return list.reduce((acc: any[], _: any, i: number) => {
+export function chunkList<T>(list: T[], size: number): T[][] {
+  return list.reduce((acc: T[][], _: T, i: number) => {
     if (i % size === 0) acc.push(list.slice(i, i + size));
     return acc;
   }, []);
@@ -33,7 +33,7 @@ export function chunkList(list: any[], size: number) {
 /**
  * @param table
  */
-export function logTableNameUndefined(table = '') {
+export function logTableNameUndefined(table = ''): void {
   console.error('Table name is undefined. ', table);
   console.trace();
 }
