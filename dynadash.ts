@@ -119,7 +119,7 @@ export async function getTableRow(
     if (projection) query['ProjectionExpression'] = projection.join(',');
     if (typeof consistent !== 'undefined') query['ConsistentRead'] = consistent;
     const result = await ddb.send(new GetItemCommand(query));
-    return { ...result, toJs: result.Item ? unmarshall(result.Item) : {} };
+    return { ...result, toJs: () => (result.Item ? unmarshall(result.Item) : {}) };
   } catch (e) {
     console.error(e);
     return null;
