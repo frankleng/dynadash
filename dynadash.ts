@@ -15,7 +15,6 @@ import {
   QueryOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { captureAWSv3Client } from 'aws-xray-sdk-core';
 
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
@@ -111,7 +110,7 @@ export async function getTableRow(
 ) {
   if (!TableName) return logTableNameUndefined();
   try {
-    const ddb = captureAWSv3Client(new DynamoDBClient({}));
+    const ddb = new DynamoDBClient({});
     const query: GetItemInput = {
       TableName,
       Key: marshall(keys),
@@ -136,7 +135,7 @@ async function batchWriteTable(
   RequestItems: BatchWriteItemInput['RequestItems'],
   retryCount = 0,
 ): Promise<BatchWriteItemCommandOutput | null> {
-  const ddb = captureAWSv3Client(new DynamoDBClient({}));
+  const ddb = new DynamoDBClient({});
   const query: BatchWriteItemInput = {
     RequestItems,
   };
@@ -222,7 +221,7 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
   return async function (TableName: PutItemInput['TableName'], data: any) {
-    const client = captureAWSv3Client(new DynamoDBClient({}));
+    const client = new DynamoDBClient({});
     if (request === 'PutItem') {
       return client.send(
         new PutItemCommand({
@@ -261,7 +260,7 @@ export async function queryTableIndex(
   },
 ): Promise<(QueryOutput & { toJs: () => any[] }) | null> {
   try {
-    const client = captureAWSv3Client(new DynamoDBClient({}));
+    const client = new DynamoDBClient({});
     let query: QueryCommandInput = {
       TableName,
       IndexName,
@@ -325,7 +324,7 @@ export async function updateTableRow(
   ReturnValues = 'ALL_NEW',
 ) {
   if (!TableName) return logTableNameUndefined();
-  const ddb = captureAWSv3Client(new DynamoDBClient({}));
+  const ddb = new DynamoDBClient({});
   const query: UpdateItemCommandInput = {
     TableName,
     Key: marshall(keys),
