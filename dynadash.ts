@@ -245,10 +245,71 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
 export const putTableRow = getWriteRequest('PutItem');
 export const delTableRow = getWriteRequest('DeleteItem');
 
+function getQueryExpression(
+  query: QueryCommandInput,
+  params: Partial<Omit<QueryCommandInput, 'TableName' | 'IndexName'>> & {
+    keyCondExpressionMap?: KeyCondExpressionMap;
+    filterExpressionMap?: FilterExpressionMap;
+  },
+) {
+  let result = { ...query };
+
+  const { keyCondExpressionMap, filterExpressionMap, ...rest } = params;
+  if (rest) result = { ...result, ...rest };
+  if (keyCondExpressionMap) {
+    const { KeyConditionExpression, ExpressionAttributeValues, ExpressionAttributeNames } = getKeyCondExpressionFromMap(
+      keyCondExpressionMap,
+    );
+    result['KeyConditionExpression'] = KeyConditionExpression;
+    result['ExpressionAttributeNames'] = result['ExpressionAttributeNames']
+      ? {
+          ...result['ExpressionAttributeNames'],
+          ...ExpressionAttributeNames,
+        }
+      : ExpressionAttributeNames;
+    result['ExpressionAttributeValues'] = result['ExpressionAttributeValues']
+      ? {
+          ...result['ExpressionAttributeValues'],
+          ...ExpressionAttributeValues,
+        }
+      : ExpressionAttributeValues;
+  }
+  if (filterExpressionMap) {
+    const { FilterExpression, ExpressionAttributeValues, ExpressionAttributeNames } = getFilterExpressionFromMap(
+      filterExpressionMap,
+    );
+    result['FilterExpression'] = FilterExpression;
+    result['ExpressionAttributeNames'] = result['ExpressionAttributeNames']
+      ? {
+          ...result['ExpressionAttributeNames'],
+          ...ExpressionAttributeNames,
+        }
+      : ExpressionAttributeNames;
+    result['ExpressionAttributeValues'] = result['ExpressionAttributeValues']
+      ? {
+          ...result['ExpressionAttributeValues'],
+          ...ExpressionAttributeValues,
+        }
+      : ExpressionAttributeValues;
+  }
+
+  return result;
+}
+
+async function handleQueryCommand(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => any[] }) | null> {
+  try {
+    const client = new DynamoDBClient({});
+    const result = await client.send(new QueryCommand(query));
+    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row)) : []) };
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
 /**
  * @param TableName
  * @param IndexName
- * @param Limit
  * @param params
  */
 export async function queryTableIndex(
@@ -258,61 +319,46 @@ export async function queryTableIndex(
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
   },
-): Promise<(QueryOutput & { toJs: () => any[] }) | null> {
-  try {
-    const client = new DynamoDBClient({});
-    let query: QueryCommandInput = {
-      TableName,
-      IndexName,
-    };
-    if (params) {
-      const { keyCondExpressionMap, filterExpressionMap, ...rest } = params;
-      if (rest) query = { ...query, ...rest };
-      if (keyCondExpressionMap) {
-        const {
-          KeyConditionExpression,
-          ExpressionAttributeValues,
-          ExpressionAttributeNames,
-        } = getKeyCondExpressionFromMap(keyCondExpressionMap);
-        query['KeyConditionExpression'] = KeyConditionExpression;
-        query['ExpressionAttributeNames'] = query['ExpressionAttributeNames']
-          ? {
-              ...query['ExpressionAttributeNames'],
-              ...ExpressionAttributeNames,
-            }
-          : ExpressionAttributeNames;
-        query['ExpressionAttributeValues'] = query['ExpressionAttributeValues']
-          ? {
-              ...query['ExpressionAttributeValues'],
-              ...ExpressionAttributeValues,
-            }
-          : ExpressionAttributeValues;
-      }
-      if (filterExpressionMap) {
-        const { FilterExpression, ExpressionAttributeValues, ExpressionAttributeNames } = getFilterExpressionFromMap(
-          filterExpressionMap,
-        );
-        query['FilterExpression'] = FilterExpression;
-        query['ExpressionAttributeNames'] = query['ExpressionAttributeNames']
-          ? {
-              ...query['ExpressionAttributeNames'],
-              ...ExpressionAttributeNames,
-            }
-          : ExpressionAttributeNames;
-        query['ExpressionAttributeValues'] = query['ExpressionAttributeValues']
-          ? {
-              ...query['ExpressionAttributeValues'],
-              ...ExpressionAttributeValues,
-            }
-          : ExpressionAttributeValues;
-      }
-    }
-    const result = await client.send(new QueryCommand(query));
-    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row)) : []) };
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
+) {
+  const query: QueryCommandInput = params
+    ? getQueryExpression(
+        {
+          TableName,
+          IndexName,
+        },
+        params,
+      )
+    : {
+        TableName,
+        IndexName,
+      };
+
+  return handleQueryCommand(query);
+}
+
+/**
+ * @param TableName
+ * @param params
+ */
+export async function queryTable(
+  TableName: QueryCommandInput['TableName'],
+  params?: Partial<Omit<QueryCommandInput, 'TableName' | 'IndexName'>> & {
+    keyCondExpressionMap?: KeyCondExpressionMap;
+    filterExpressionMap?: FilterExpressionMap;
+  },
+) {
+  const query: QueryCommandInput = params
+    ? getQueryExpression(
+        {
+          TableName,
+        },
+        params,
+      )
+    : {
+        TableName,
+      };
+
+  return handleQueryCommand(query);
 }
 
 export async function updateTableRow(
