@@ -102,7 +102,7 @@ export const getFilterExpressionFromMap = (map: FilterExpressionMap) =>
  * @param projection
  * @param consistent
  */
-export async function getTableRow(
+export async function getTableRow<R>(
   TableName: GetItemInput['TableName'],
   keys: { [x: string]: any },
   projection?: string[],
@@ -118,7 +118,7 @@ export async function getTableRow(
     if (projection) query['ProjectionExpression'] = projection.join(',');
     if (typeof consistent !== 'undefined') query['ConsistentRead'] = consistent;
     const result = await ddb.send(new GetItemCommand(query));
-    return { ...result, toJs: () => (result.Item ? unmarshall(result.Item) : {}) };
+    return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : {}) };
   } catch (e) {
     console.error(e);
     return null;
@@ -296,11 +296,11 @@ function getQueryExpression(
   return result;
 }
 
-async function handleQueryCommand(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => any[] }) | null> {
+async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => R[] }) | null> {
   try {
     const client = new DynamoDBClient({});
     const result = await client.send(new QueryCommand(query));
-    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row)) : []) };
+    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []) };
   } catch (e) {
     console.error(e);
     return null;
@@ -312,7 +312,7 @@ async function handleQueryCommand(query: QueryCommandInput): Promise<(QueryOutpu
  * @param IndexName
  * @param params
  */
-export async function queryTableIndex(
+export async function queryTableIndex<R>(
   TableName: QueryCommandInput['TableName'],
   IndexName: QueryCommandInput['IndexName'],
   params?: Partial<Omit<QueryCommandInput, 'TableName' | 'IndexName'>> & {
@@ -333,14 +333,14 @@ export async function queryTableIndex(
         IndexName,
       };
 
-  return handleQueryCommand(query);
+  return handleQueryCommand<R>(query);
 }
 
 /**
  * @param TableName
  * @param params
  */
-export async function queryTable(
+export async function queryTable<R>(
   TableName: QueryCommandInput['TableName'],
   params?: Partial<Omit<QueryCommandInput, 'TableName' | 'IndexName'>> & {
     keyCondExpressionMap?: KeyCondExpressionMap;
@@ -358,7 +358,7 @@ export async function queryTable(
         TableName,
       };
 
-  return handleQueryCommand(query);
+  return handleQueryCommand<R>(query);
 }
 
 export async function updateTableRow(
