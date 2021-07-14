@@ -13,6 +13,7 @@ import {
   UpdateItemCommand,
   UpdateItemCommandInput,
   QueryOutput,
+  GetItemCommandOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
@@ -34,7 +35,7 @@ export function chunkList<T>(list: T[], size: number): T[][] {
  */
 export function logTableNameUndefined(table = ''): void {
   console.error('Table name is undefined. ', table);
-  console.trace();
+  console.log(__filename);
 }
 
 export type KeyCondMap = { op: '=' | '>' | '<' | '>=' | '<='; value: string | number };
@@ -107,7 +108,7 @@ export async function getTableRow<R>(
   keys: { [x: string]: any },
   projection?: string[],
   consistent?: boolean,
-) {
+): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   if (!TableName) return logTableNameUndefined();
   try {
     const ddb = new DynamoDBClient({});
@@ -118,7 +119,7 @@ export async function getTableRow<R>(
     if (projection) query['ProjectionExpression'] = projection.join(',');
     if (typeof consistent !== 'undefined') query['ConsistentRead'] = consistent;
     const result = await ddb.send(new GetItemCommand(query));
-    return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : {}) };
+    return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
     console.error(e);
     return null;
