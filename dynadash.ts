@@ -362,7 +362,7 @@ export async function queryTable<R>(
   return handleQueryCommand<R>(query);
 }
 
-export async function updateTableRow(
+export async function updateTableRow<R>(
   TableName: UpdateItemCommandInput['TableName'],
   keys: { [x: string]: any },
   UpdateExpression: string,
@@ -371,19 +371,25 @@ export async function updateTableRow(
   ReturnValues = 'ALL_NEW',
 ) {
   if (!TableName) return logTableNameUndefined();
-  const ddb = new DynamoDBClient({});
-  const query: UpdateItemCommandInput = {
-    TableName,
-    Key: marshall(keys),
-    UpdateExpression,
-    ExpressionAttributeValues: marshall(expressionAttributeValues, {
-      removeUndefinedValues: true,
-    }),
-    ExpressionAttributeNames,
-    ReturnValues,
-  };
-  const result = await ddb.send(new UpdateItemCommand(query));
-  return result ? result : null;
+  try {
+    const ddb = new DynamoDBClient({});
+    const query: UpdateItemCommandInput = {
+      TableName,
+      Key: marshall(keys),
+      UpdateExpression,
+      ExpressionAttributeValues: marshall(expressionAttributeValues, {
+        removeUndefinedValues: true,
+      }),
+      ExpressionAttributeNames,
+      ReturnValues,
+    };
+    const result = await ddb.send(new UpdateItemCommand(query));
+    return { ...result, toJs: () => result.Attributes? (unmarshall(result.Attributes) as R) : {} };
+  }
+  catch(e) {
+    console.error(e);
+    return null;
+  }
 }
 
 /**
