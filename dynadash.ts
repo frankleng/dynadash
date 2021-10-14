@@ -14,6 +14,7 @@ import {
   UpdateItemCommandInput,
   QueryOutput,
   GetItemCommandOutput,
+  WriteRequest,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
@@ -184,9 +185,11 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
 
     for (const chunk of chunkedList) {
       console.log('chunk length', chunk.length);
-      const putRequests: BatchWriteItemInput['RequestItems'] = {
-        [TableName]: chunk.map((item: any) => {
+
+      const items = chunk
+        .map((item: any) => {
           const row = predicate ? predicate(item) : item;
+          if (!row) return undefined;
           const marshalledRow = marshall(row, {
             removeUndefinedValues: true,
           });
@@ -204,11 +207,17 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
               },
             };
           }
-          return {};
-        }),
-      };
-      const result = await batchWriteTable(putRequests);
-      results.push(result);
+          return undefined;
+        })
+        .filter(Boolean);
+
+      if (items.length > 0) {
+        const putRequests: BatchWriteItemInput['RequestItems'] = {
+          [TableName]: items as WriteRequest[],
+        };
+        const result = await batchWriteTable(putRequests);
+        results.push(result);
+      }
     }
     return results;
   };
