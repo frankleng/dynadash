@@ -167,15 +167,15 @@ async function batchWriteTable(
 /**
  * @param request
  */
-function getBatchWriteRequest<T>(request: 'PutRequest' | 'DeleteRequest') {
-  return async function (
+function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
+  return async function <R>(
     TableName: PutItemInput['TableName'],
     unmarshalledList: any[],
     predicate?: (item: any) => any,
-  ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: T[] } | void> {
+  ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
-    const actualList: T[] = [];
+    const actualList: R[] = [];
 
     // AWS SDK limits batch requests to 25 - https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
     // so we have to chunk the list, and create separate requests
@@ -187,7 +187,7 @@ function getBatchWriteRequest<T>(request: 'PutRequest' | 'DeleteRequest') {
     for (const chunk of chunkedList) {
       const items = chunk
         .map((item) => {
-          const row: T = predicate ? predicate(item) : item;
+          const row: R = predicate ? predicate(item) : item;
           if (!row) return undefined;
           actualList.push(item);
           const marshalledRow = marshall(row, {
