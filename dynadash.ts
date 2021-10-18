@@ -167,14 +167,15 @@ async function batchWriteTable(
 /**
  * @param request
  */
-function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
+function getBatchWriteRequest<T>(request: 'PutRequest' | 'DeleteRequest') {
   return async function (
     TableName: PutItemInput['TableName'],
     unmarshalledList: any[],
     predicate?: (item: any) => any,
-  ): Promise<(BatchWriteItemCommandOutput | null)[] | void> {
+  ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: T[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
+    const actualList: T[] = [];
 
     // AWS SDK limits batch requests to 25 - https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
     // so we have to chunk the list, and create separate requests
@@ -184,12 +185,11 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     console.log('# of chunks', chunkedList.length);
 
     for (const chunk of chunkedList) {
-      console.log('chunk length', chunk.length);
-
       const items = chunk
-        .map((item: any) => {
-          const row = predicate ? predicate(item) : item;
+        .map((item) => {
+          const row: T = predicate ? predicate(item) : item;
           if (!row) return undefined;
+          actualList.push(item);
           const marshalledRow = marshall(row, {
             removeUndefinedValues: true,
           });
@@ -219,7 +219,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
         results.push(result);
       }
     }
-    return results;
+    return { results, actualList };
   };
 }
 
@@ -393,9 +393,8 @@ export async function updateTableRow<R>(
       ReturnValues,
     };
     const result = await ddb.send(new UpdateItemCommand(query));
-    return { ...result, toJs: () => result.Attributes? (unmarshall(result.Attributes) as R) : {} };
-  }
-  catch(e) {
+    return { ...result, toJs: () => (result.Attributes ? (unmarshall(result.Attributes) as R) : {}) };
+  } catch (e) {
     console.error(e);
     return null;
   }
