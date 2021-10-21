@@ -189,7 +189,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
         .map((item) => {
           const row: R = predicate ? predicate(item) : item;
           if (!row) return undefined;
-          actualList.push(item);
+          actualList.push(row);
           const marshalledRow = marshall(row, {
             removeUndefinedValues: true,
           });
