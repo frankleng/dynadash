@@ -230,7 +230,7 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  * @param request
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
-  return async function (TableName: PutItemInput['TableName'], data: any) {
+  return async function <R>(TableName: PutItemInput['TableName'], data: R) {
     const client = new DynamoDBClient({});
     if (request === 'PutItem') {
       return client.send(
