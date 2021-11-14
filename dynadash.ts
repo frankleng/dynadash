@@ -308,27 +308,23 @@ function getQueryExpression(
   return result;
 }
 
-async function handleQueryCommand<R>(
-  query: QueryCommandInput,
-): Promise<(QueryOutput & { listAll: () => Promise<QueryCommandOutput>; toJs: () => R[] }) | null> {
+async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => R[] }) | null> {
   try {
     const client = new DynamoDBClient({});
     let result = await client.send(new QueryCommand(query));
 
-    const listAll = async () => {
+    if (result?.LastEvaluatedKey) {
       let items = result.Items || [];
-      while (result?.LastEvaluatedKey) {
+      while (result.LastEvaluatedKey) {
         result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
         items = items.concat(result.Items || []);
       }
       result.Items = items;
-      return result;
-    };
+    }
 
     return {
       ...result,
       toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []),
-      listAll,
     };
   } catch (e) {
     console.error(e);
