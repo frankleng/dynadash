@@ -15,6 +15,7 @@ import {
   QueryOutput,
   GetItemCommandOutput,
   WriteRequest,
+  QueryCommandOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
@@ -181,8 +182,9 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     // so we have to chunk the list, and create separate requests
     const chunkedList = chunkList(unmarshalledList, 25);
 
-    console.log('list length', unmarshalledList.length);
-    console.log('# of chunks', chunkedList.length);
+    console.info({ TableName });
+    console.info('list length', unmarshalledList.length);
+    console.info('# of chunks', chunkedList.length);
 
     for (const chunk of chunkedList) {
       const items = chunk
@@ -306,11 +308,28 @@ function getQueryExpression(
   return result;
 }
 
-async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => R[] }) | null> {
+async function handleQueryCommand<R>(
+  query: QueryCommandInput,
+): Promise<(QueryOutput & { listAll: () => Promise<QueryCommandOutput>; toJs: () => R[] }) | null> {
   try {
     const client = new DynamoDBClient({});
-    const result = await client.send(new QueryCommand(query));
-    return { ...result, toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []) };
+    let result = await client.send(new QueryCommand(query));
+
+    const listAll = async () => {
+      let items = result.Items || [];
+      while (result?.LastEvaluatedKey) {
+        result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
+        items = items.concat(result.Items || []);
+      }
+      result.Items = items;
+      return result;
+    };
+
+    return {
+      ...result,
+      toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []),
+      listAll,
+    };
   } catch (e) {
     console.error(e);
     return null;
