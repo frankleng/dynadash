@@ -15,7 +15,6 @@ import {
   QueryOutput,
   GetItemCommandOutput,
   WriteRequest,
-  QueryCommandOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
@@ -389,13 +388,17 @@ export async function queryTable<R>(
 export async function updateTableRow<R>(
   TableName: UpdateItemCommandInput['TableName'],
   keys: { [x: string]: any },
-  UpdateExpression: string,
-  expressionAttributeValues: { [x: string]: any },
-  ExpressionAttributeNames?: { [x: string]: string },
+  params: {
+    UpdateExpression: string;
+    expressionAttributeValues: { [x: string]: any };
+    ExpressionAttributeNames?: { [x: string]: string };
+    ConditionExpression?: string;
+  },
   ReturnValues = 'ALL_NEW',
 ) {
   if (!TableName) return logTableNameUndefined();
   try {
+    const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
     const ddb = new DynamoDBClient({});
     const query: UpdateItemCommandInput = {
       TableName,
@@ -405,6 +408,7 @@ export async function updateTableRow<R>(
         removeUndefinedValues: true,
       }),
       ExpressionAttributeNames,
+      ConditionExpression,
       ReturnValues,
     };
     const result = await ddb.send(new UpdateItemCommand(query));
@@ -420,32 +424,33 @@ export async function updateTableRow<R>(
  * @param TableName
  * @param keys
  * @param row
+ * @param ConditionExpression
  */
 export async function shallowUpdateTableRow(
   TableName: UpdateItemCommandInput['TableName'],
   keys: { [x: string]: any },
   row: { [x: string]: any },
+  ConditionExpression?: string,
 ) {
   const updateExpressions = [];
   const expressionAttributeValues: {
     [x: string]: any;
   } = {};
-  const expressionAttributeNames: { [x: string]: string } = {};
+  const ExpressionAttributeNames: { [x: string]: string } = {};
 
   for (const key in row) {
     if (row.hasOwnProperty(key)) {
       const val = row[key];
       updateExpressions.push(`#${key} = :${key}`);
       expressionAttributeValues[`:${key}`] = val;
-      expressionAttributeNames[`#${key}`] = key;
+      ExpressionAttributeNames[`#${key}`] = key;
     }
   }
 
-  return updateTableRow(
-    TableName,
-    keys,
-    `SET ${updateExpressions.join(', ')}`,
+  return updateTableRow(TableName, keys, {
+    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
     expressionAttributeValues,
-    expressionAttributeNames,
-  );
+    ExpressionAttributeNames,
+    ConditionExpression,
+  });
 }
