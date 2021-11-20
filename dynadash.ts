@@ -424,13 +424,20 @@ export async function updateTableRow<R>(
  * @param TableName
  * @param keys
  * @param row
- * @param ConditionExpression
+ * @param condExp
  */
+type LogicOp = 'AND' | 'OR' | 'NOT';
 export async function shallowUpdateTableRow(
   TableName: UpdateItemCommandInput['TableName'],
   keys: { [x: string]: any },
   row: { [x: string]: any },
-  ConditionExpression?: string,
+  condExp?:
+    | string
+    | {
+        [x: string]:
+          | { op: KeyCondMap['op'] | '<>'; value: string | number; logicOp?: LogicOp }
+          | { op: 'IN' | 'BETWEEN'; value: string[]; logicOp?: LogicOp };
+      },
 ) {
   const updateExpressions = [];
   const expressionAttributeValues: {
@@ -438,6 +445,7 @@ export async function shallowUpdateTableRow(
   } = {};
   const ExpressionAttributeNames: { [x: string]: string } = {};
 
+  const conditionExpression: string[] = [];
   for (const key in row) {
     if (row.hasOwnProperty(key)) {
       const val = row[key];
@@ -447,10 +455,41 @@ export async function shallowUpdateTableRow(
     }
   }
 
+  if (typeof condExp === 'object') {
+    for (const key in condExp) {
+      if (condExp.hasOwnProperty(key)) {
+        const exp = condExp[key];
+        let cond;
+        if (exp.op === 'IN') {
+          const valStr = exp.value
+            .map((v, i) => {
+              const k = `:${key}IN-${i}`;
+              expressionAttributeValues[k] = v;
+              return k;
+            })
+            .join(', ');
+          cond = `(${key} IN (${valStr}))`;
+        }
+        if (exp.op === 'BETWEEN') {
+          cond = `(${key} between :${key}-A and :${key}-B)`;
+          expressionAttributeValues[`:${key}-A`] = exp.value[0];
+          expressionAttributeValues[`:${key}-B`] = exp.value[1];
+        } else {
+          cond = `${key} ${exp.op} :${key}-v`;
+          expressionAttributeValues[`:${key}-v`] = exp.value;
+        }
+        if (exp.logicOp) cond += ` ${exp.logicOp}`;
+        conditionExpression.push(cond);
+      }
+    }
+  } else if (typeof condExp === 'string') {
+    conditionExpression.push(condExp);
+  }
+
   return updateTableRow(TableName, keys, {
     UpdateExpression: `SET ${updateExpressions.join(', ')}`,
     expressionAttributeValues,
     ExpressionAttributeNames,
-    ConditionExpression,
+    ConditionExpression: conditionExpression.join(' '),
   });
 }
