@@ -387,7 +387,7 @@ export async function queryTable<R>(
 
 export async function updateTableRow<R>(
   TableName: UpdateItemCommandInput['TableName'],
-  keys: { [x: string]: any },
+  keys: Partial<R>,
   params: {
     UpdateExpression: string;
     expressionAttributeValues: { [x: string]: any };
@@ -427,10 +427,10 @@ export async function updateTableRow<R>(
  * @param condExp
  */
 type LogicOp = 'AND' | 'OR' | 'NOT';
-export async function shallowUpdateTableRow(
+export async function shallowUpdateTableRow<R>(
   TableName: UpdateItemCommandInput['TableName'],
-  keys: { [x: string]: any },
-  row: { [x: string]: any },
+  keys: Partial<R>,
+  row: Partial<R>,
   condExp?:
     | string
     | {
