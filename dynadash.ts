@@ -106,7 +106,7 @@ export const getFilterExpressionFromMap = (map: FilterExpressionMap) =>
 export async function getTableRow<R>(
   TableName: GetItemInput['TableName'],
   keys: { [x: string]: any },
-  params?: GetItemInput & { projection?: string[] },
+  params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   if (!TableName) return logTableNameUndefined();
   try {
