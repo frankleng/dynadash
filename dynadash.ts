@@ -471,12 +471,12 @@ export async function shallowUpdateTableRow<R>(
           cond = `(${key} IN (${valStr}))`;
         }
         if (exp.op === 'BETWEEN') {
-          cond = `(${key} between :${key}-A and :${key}-B)`;
-          expressionAttributeValues[`:${key}-A`] = exp.value[0];
-          expressionAttributeValues[`:${key}-B`] = exp.value[1];
+          cond = `(${key} between :${key}Xaa and :${key}Xbb)`;
+          expressionAttributeValues[`:${key}Xaa`] = exp.value[0];
+          expressionAttributeValues[`:${key}Xbb`] = exp.value[1];
         } else {
-          cond = `${key} ${exp.op} :${key}-v`;
-          expressionAttributeValues[`:${key}-v`] = exp.value;
+          cond = `${key} ${exp.op} :${key}Xvv`;
+          expressionAttributeValues[`:${key}Xvv`] = exp.value;
         }
         if (exp.logicOp) cond += ` ${exp.logicOp}`;
         conditionExpression.push(cond);
