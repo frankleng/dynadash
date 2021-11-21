@@ -106,11 +106,11 @@ export const getFilterExpressionFromMap = (map: FilterExpressionMap) =>
 export async function getTableRow<R>(
   TableName: GetItemInput['TableName'],
   keys: { [x: string]: any },
-  params: GetItemInput & { projection?: string[] },
+  params?: GetItemInput & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   if (!TableName) return logTableNameUndefined();
   try {
-    const { projection, ...rest } = params;
+    const { projection, ...rest } = params || {};
     const ddb = new DynamoDBClient({});
     const query: GetItemInput = {
       TableName,
