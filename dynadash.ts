@@ -101,24 +101,23 @@ export const getFilterExpressionFromMap = (map: FilterExpressionMap) =>
 /**
  * @param TableName
  * @param keys
- * @param projection
- * @param consistent
+ * @param params
  */
 export async function getTableRow<R>(
   TableName: GetItemInput['TableName'],
   keys: { [x: string]: any },
-  projection?: string[],
-  consistent?: boolean,
+  params: GetItemInput & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   if (!TableName) return logTableNameUndefined();
   try {
+    const { projection, ...rest } = params;
     const ddb = new DynamoDBClient({});
     const query: GetItemInput = {
       TableName,
       Key: marshall(keys),
+      ...rest,
     };
     if (projection) query['ProjectionExpression'] = projection.join(',');
-    if (typeof consistent !== 'undefined') query['ConsistentRead'] = consistent;
     const result = await ddb.send(new GetItemCommand(query));
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
