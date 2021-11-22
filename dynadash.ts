@@ -311,7 +311,7 @@ async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOu
     const client = new DynamoDBClient({});
     let result = await client.send(new QueryCommand(query));
 
-    if (result?.LastEvaluatedKey && !query.ExclusiveStartKey) {
+    if (result?.LastEvaluatedKey && !query.ExclusiveStartKey && !query.Limit) {
       let items = result.Items || [];
       while (result.LastEvaluatedKey) {
         result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
