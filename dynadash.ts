@@ -109,19 +109,22 @@ export async function getTableRow<R>(
   params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   if (!TableName) return logTableNameUndefined();
+  const { projection, ...rest } = params || {};
+
+  const query: GetItemInput = {
+    TableName,
+    Key: marshall(keys),
+    ...rest,
+  };
   try {
-    const { projection, ...rest } = params || {};
     const ddb = new DynamoDBClient({});
-    const query: GetItemInput = {
-      TableName,
-      Key: marshall(keys),
-      ...rest,
-    };
+
     if (projection) query['ProjectionExpression'] = projection.join(',');
     const result = await ddb.send(new GetItemCommand(query));
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
     console.error(e);
+    console.error({ query });
     return null;
   }
 }
@@ -326,6 +329,7 @@ async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOu
     };
   } catch (e) {
     console.error(e);
+    console.error({ query });
     return null;
   }
 }
@@ -396,24 +400,24 @@ export async function updateTableRow<R>(
   ReturnValues = 'ALL_NEW',
 ) {
   if (!TableName) return logTableNameUndefined();
+  const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
+  const query: UpdateItemCommandInput = {
+    TableName,
+    Key: marshall(keys),
+    UpdateExpression,
+    ExpressionAttributeValues: marshall(expressionAttributeValues, {
+      removeUndefinedValues: true,
+    }),
+    ExpressionAttributeNames,
+    ReturnValues,
+  };
   try {
-    const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
     const ddb = new DynamoDBClient({});
-    const query: UpdateItemCommandInput = {
-      TableName,
-      Key: marshall(keys),
-      UpdateExpression,
-      ExpressionAttributeValues: marshall(expressionAttributeValues, {
-        removeUndefinedValues: true,
-      }),
-      ExpressionAttributeNames,
-      ConditionExpression,
-      ReturnValues,
-    };
     const result = await ddb.send(new UpdateItemCommand(query));
     return { ...result, toJs: () => (result.Attributes ? (unmarshall(result.Attributes) as R) : {}) };
   } catch (e) {
     console.error(e);
+    console.error({ query });
     return null;
   }
 }
@@ -489,6 +493,6 @@ export async function shallowUpdateTableRow<R>(
     UpdateExpression: `SET ${updateExpressions.join(', ')}`,
     expressionAttributeValues,
     ExpressionAttributeNames,
-    ConditionExpression: conditionExpression.join(' '),
+    ConditionExpression: conditionExpression.join(' ') || undefined,
   });
 }
