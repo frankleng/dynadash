@@ -172,8 +172,8 @@ async function batchWriteTable(
 function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
   return async function <R>(
     TableName: PutItemInput['TableName'],
-    unmarshalledList: never[],
-    predicate?: (item: never) => R | undefined,
+    unmarshalledList: any[],
+    predicate?: (item: any) => R | undefined,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
