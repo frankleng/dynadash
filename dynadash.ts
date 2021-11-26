@@ -172,8 +172,8 @@ async function batchWriteTable(
 function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
   return async function <R>(
     TableName: PutItemInput['TableName'],
-    unmarshalledList: any[],
-    predicate?: (item: any) => R,
+    unmarshalledList: never[],
+    predicate?: (item: never) => R | undefined,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
@@ -190,7 +190,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     for (const chunk of chunkedList) {
       const items = chunk
         .map((item) => {
-          const row: R = predicate ? predicate(item) : item;
+          const row = predicate ? predicate(item) : item;
           if (!row) return undefined;
           actualList.push(row);
           const marshalledRow = marshall(row, {
