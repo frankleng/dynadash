@@ -173,7 +173,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
   return async function <R>(
     TableName: PutItemInput['TableName'],
     unmarshalledList: any[],
-    predicate?: (item: any) => any,
+    predicate?: (item: any) => R,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
@@ -233,7 +233,7 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  * @param request
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
-  return async function <R>(TableName: PutItemInput['TableName'], data: R) {
+  return async function <R>(TableName: PutItemInput['TableName'], data: Partial<R>) {
     const client = new DynamoDBClient({});
     if (request === 'PutItem') {
       return client.send(
