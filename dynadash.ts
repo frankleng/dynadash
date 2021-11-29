@@ -17,6 +17,7 @@ import {
   WriteRequest,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { inspect } from 'util';
 
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
@@ -37,6 +38,14 @@ export function chunkList<T>(list: T[], size: number): T[][] {
 export function logTableNameUndefined(table = ''): void {
   console.error('Table name is undefined. ', table);
   console.log(__filename);
+}
+
+export function consoleLog(obj: unknown): void {
+  console.log(inspect(obj, false, null, true /* enable colors */));
+}
+
+export function consoleError(obj: unknown): void {
+  console.error(inspect(obj, false, null, true /* enable colors */));
 }
 
 export type KeyCondMap = { op: '=' | '>' | '<' | '>=' | '<='; value: string | number };
@@ -123,8 +132,8 @@ export async function getTableRow<R>(
     const result = await ddb.send(new GetItemCommand(query));
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
-    console.error(e);
-    console.error({ query });
+    consoleError(e);
+    consoleError({ query });
     return null;
   }
 }
@@ -328,8 +337,8 @@ async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOu
       toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []),
     };
   } catch (e) {
-    console.error(e);
-    console.error({ query });
+    consoleError(e);
+    consoleError({ query });
     return null;
   }
 }
@@ -416,8 +425,8 @@ export async function updateTableRow<R>(
     const result = await ddb.send(new UpdateItemCommand(query));
     return { ...result, toJs: () => (result.Attributes ? (unmarshall(result.Attributes) as R) : {}) };
   } catch (e) {
-    console.error(e);
-    console.error({ query });
+    consoleError(e);
+    consoleError({ query });
     return null;
   }
 }
