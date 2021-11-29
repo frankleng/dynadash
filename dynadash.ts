@@ -427,7 +427,7 @@ export async function updateTableRow<R>(
   } catch (e) {
     consoleError(e);
     consoleError({ query });
-    return null;
+    throw e;
   }
 }
 
