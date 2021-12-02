@@ -152,27 +152,32 @@ async function batchWriteTable(
   const query: BatchWriteItemInput = {
     RequestItems,
   };
-  let result: BatchWriteItemCommandOutput | null = await ddb.send(new BatchWriteItemCommand(query));
-
-  if (
-    retryCount < BATCH_WRITE_RETRY_THRESHOLD &&
-    result.UnprocessedItems &&
-    Object.keys(result.UnprocessedItems).length
-  ) {
-    // delay between 2 seconds + exponential backoff (max backoff ~4 min, to be safe within 15min Lambda exec timeout)
-    const delay = Math.floor(2000 + Math.pow(12, retryCount));
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    result = await batchWriteTable(result.UnprocessedItems, retryCount + 1);
+  try {
+    let result: BatchWriteItemCommandOutput | null = await ddb.send(new BatchWriteItemCommand(query));
+    if (
+      retryCount < BATCH_WRITE_RETRY_THRESHOLD &&
+      result.UnprocessedItems &&
+      Object.keys(result.UnprocessedItems).length
+    ) {
+      // delay between 2 seconds + exponential backoff (max backoff ~4 min, to be safe within 15min Lambda exec timeout)
+      const delay = Math.floor(2000 + Math.pow(12, retryCount));
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      result = await batchWriteTable(result.UnprocessedItems, retryCount + 1);
+    }
+    if (
+      retryCount > BATCH_WRITE_RETRY_THRESHOLD &&
+      result?.UnprocessedItems &&
+      Object.keys(result.UnprocessedItems).length
+    ) {
+      console.log('Unprocessed Items:', result.UnprocessedItems);
+      throw `Batch Write failed to ${process.env.ORDER_SUMMARY_TABLE_NAME}`;
+    }
+    return result;
+  } catch (e) {
+    consoleError(e);
+    consoleLog({ query });
+    throw e;
   }
-  if (
-    retryCount > BATCH_WRITE_RETRY_THRESHOLD &&
-    result?.UnprocessedItems &&
-    Object.keys(result.UnprocessedItems).length
-  ) {
-    console.log('Unprocessed Items:', result.UnprocessedItems);
-    throw `Batch Write failed to ${process.env.ORDER_SUMMARY_TABLE_NAME}`;
-  }
-  return result;
 }
 
 /**
@@ -243,24 +248,30 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
   return async function <R>(TableName: PutItemInput['TableName'], data: Partial<R>) {
-    const client = new DynamoDBClient({});
-    if (request === 'PutItem') {
-      return client.send(
-        new PutItemCommand({
-          TableName,
-          Item: marshall(data, { removeUndefinedValues: true }),
-        }),
-      );
+    try {
+      const client = new DynamoDBClient({});
+      if (request === 'PutItem') {
+        return client.send(
+          new PutItemCommand({
+            TableName,
+            Item: marshall(data, { removeUndefinedValues: true }),
+          }),
+        );
+      }
+      if (request === 'DeleteItem') {
+        return client.send(
+          new DeleteItemCommand({
+            TableName,
+            Key: marshall(data, { removeUndefinedValues: true }),
+          }),
+        );
+      }
+      return null;
+    } catch (e) {
+      consoleError(e);
+      consoleLog({ TableName, request, data });
+      throw e;
     }
-    if (request === 'DeleteItem') {
-      return client.send(
-        new DeleteItemCommand({
-          TableName,
-          Key: marshall(data, { removeUndefinedValues: true }),
-        }),
-      );
-    }
-    return null;
   };
 }
 
