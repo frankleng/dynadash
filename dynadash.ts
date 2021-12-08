@@ -41,11 +41,11 @@ export function logTableNameUndefined(table = ''): void {
 }
 
 export function consoleLog(obj: unknown): void {
-  console.log(inspect(obj, false, null, true /* enable colors */));
+  console.log(inspect(obj, false, null, false));
 }
 
 export function consoleError(obj: unknown): void {
-  console.error(inspect(obj, false, null, true /* enable colors */));
+  console.error(inspect(obj, false, null, false));
 }
 
 export type KeyCondMap = { op: '=' | '>' | '<' | '>=' | '<='; value: string | number };
