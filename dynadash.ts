@@ -204,27 +204,33 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     for (const chunk of chunkedList) {
       const items = chunk
         .map((item) => {
-          const row = predicate ? predicate(item) : item;
-          if (!row) return undefined;
-          actualList.push(row);
-          const marshalledRow = marshall(row, {
-            removeUndefinedValues: true,
-          });
-          if (request === 'DeleteRequest') {
-            return {
-              DeleteRequest: {
-                Key: marshalledRow,
-              },
-            };
+          try {
+            const row = predicate ? predicate(item) : item;
+            if (!row) return undefined;
+            actualList.push(row);
+            const marshalledRow = marshall(row, {
+              removeUndefinedValues: true,
+            });
+            if (request === 'DeleteRequest') {
+              return {
+                DeleteRequest: {
+                  Key: marshalledRow,
+                },
+              };
+            }
+            if (request === 'PutRequest') {
+              return {
+                PutRequest: {
+                  Item: marshalledRow,
+                },
+              };
+            }
+            return undefined;
+          } catch (e) {
+            consoleError(e);
+            consoleLog({ item });
+            throw e;
           }
-          if (request === 'PutRequest') {
-            return {
-              PutRequest: {
-                Item: marshalledRow,
-              },
-            };
-          }
-          return undefined;
         })
         .filter(Boolean);
 
