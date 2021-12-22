@@ -21,6 +21,8 @@ import { inspect } from 'util';
 
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
+export const DEFAULT_MARSHALL_OPTIONS = { removeUndefinedValues: true, convertEmptyValues: true };
+
 /**
  * @param list
  * @param size
@@ -87,7 +89,7 @@ function getExpressionFromMap(type: 'FilterExpression' | 'KeyConditionExpression
     return {
       [type]: keyCondExpList.join(' and '),
       ExpressionAttributeValues: marshall(ExpressionAttributeValues, {
-        removeUndefinedValues: true,
+        ...DEFAULT_MARSHALL_OPTIONS,
       }),
       ExpressionAttributeNames,
     };
@@ -209,7 +211,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
             if (!row) return undefined;
             actualList.push(row);
             const marshalledRow = marshall(row, {
-              removeUndefinedValues: true,
+              ...DEFAULT_MARSHALL_OPTIONS,
             });
             if (request === 'DeleteRequest') {
               return {
@@ -260,7 +262,7 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
         return client.send(
           new PutItemCommand({
             TableName,
-            Item: marshall(data, { removeUndefinedValues: true }),
+            Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
           }),
         );
       }
@@ -268,14 +270,14 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
         return client.send(
           new DeleteItemCommand({
             TableName,
-            Key: marshall(data, { removeUndefinedValues: true }),
+            Key: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
           }),
         );
       }
       return null;
     } catch (e) {
       consoleError(e);
-      consoleLog({ TableName, request, data });
+      consoleError({ TableName, request, data });
       throw e;
     }
   };
@@ -296,9 +298,8 @@ function getQueryExpression(
   const { keyCondExpressionMap, filterExpressionMap, ...rest } = params;
   if (rest) result = { ...result, ...rest };
   if (keyCondExpressionMap) {
-    const { KeyConditionExpression, ExpressionAttributeValues, ExpressionAttributeNames } = getKeyCondExpressionFromMap(
-      keyCondExpressionMap,
-    );
+    const { KeyConditionExpression, ExpressionAttributeValues, ExpressionAttributeNames } =
+      getKeyCondExpressionFromMap(keyCondExpressionMap);
     result['KeyConditionExpression'] = KeyConditionExpression;
     result['ExpressionAttributeNames'] = result['ExpressionAttributeNames']
       ? {
@@ -314,9 +315,8 @@ function getQueryExpression(
       : ExpressionAttributeValues;
   }
   if (filterExpressionMap) {
-    const { FilterExpression, ExpressionAttributeValues, ExpressionAttributeNames } = getFilterExpressionFromMap(
-      filterExpressionMap,
-    );
+    const { FilterExpression, ExpressionAttributeValues, ExpressionAttributeNames } =
+      getFilterExpressionFromMap(filterExpressionMap);
     result['FilterExpression'] = FilterExpression;
     result['ExpressionAttributeNames'] = result['ExpressionAttributeNames']
       ? {
@@ -432,7 +432,7 @@ export async function updateTableRow<R>(
     Key: marshall(keys),
     UpdateExpression,
     ExpressionAttributeValues: marshall(expressionAttributeValues, {
-      removeUndefinedValues: true,
+      ...DEFAULT_MARSHALL_OPTIONS,
     }),
     ExpressionAttributeNames,
     ReturnValues,
