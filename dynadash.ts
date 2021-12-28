@@ -15,6 +15,7 @@ import {
   QueryOutput,
   GetItemCommandOutput,
   WriteRequest,
+  AttributeValue,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
@@ -335,7 +336,9 @@ function getQueryExpression(
   return result;
 }
 
-async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOutput & { toJs: () => R[] }) | null> {
+async function handleQueryCommand<R>(
+  query: QueryCommandInput,
+): Promise<(QueryOutput & { toJs: (predicate: (row: R) => R) => R[] }) | null> {
   try {
     const client = new DynamoDBClient({});
     let result = await client.send(new QueryCommand(query));
@@ -351,7 +354,13 @@ async function handleQueryCommand<R>(query: QueryCommandInput): Promise<(QueryOu
 
     return {
       ...result,
-      toJs: () => (result.Items?.length ? result.Items.map((row) => unmarshall(row) as R) : []),
+      toJs: (predicate) =>
+        result.Items?.length
+          ? result.Items.map((row) => {
+              const result = unmarshall(row) as R;
+              return predicate ? predicate(result) : result;
+            })
+          : [],
     };
   } catch (e) {
     consoleError(e);
