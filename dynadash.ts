@@ -338,7 +338,7 @@ function getQueryExpression(
 
 async function handleQueryCommand<R>(
   query: QueryCommandInput,
-): Promise<(QueryOutput & { toJs: (predicate: (row: R) => R) => R[] }) | null> {
+): Promise<(QueryOutput & { toJs: (predicate?: (row: R) => R) => R[] }) | null> {
   try {
     const client = new DynamoDBClient({});
     let result = await client.send(new QueryCommand(query));
