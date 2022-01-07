@@ -15,7 +15,6 @@ import {
   QueryOutput,
   GetItemCommandOutput,
   WriteRequest,
-  AttributeValue,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
@@ -190,7 +189,7 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
   return async function <R>(
     TableName: PutItemInput['TableName'],
     unmarshalledList: any[],
-    predicate?: (item: any) => R | undefined,
+    predicate?: (item: any) => (R | Promise<R>) | undefined,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     if (!TableName) return logTableNameUndefined();
     const results = [];
@@ -205,41 +204,48 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     console.info('# of chunks', chunkedList.length);
 
     for (const chunk of chunkedList) {
-      const items = chunk
-        .map((item) => {
-          try {
-            const row = predicate ? predicate(item) : item;
-            if (!row) return undefined;
-            actualList.push(row);
-            const marshalledRow = marshall(row, {
-              ...DEFAULT_MARSHALL_OPTIONS,
-            });
-            if (request === 'DeleteRequest') {
-              return {
-                DeleteRequest: {
-                  Key: marshalledRow,
-                },
-              };
+      const requests: WriteRequest[] = [];
+      for (const item of chunk) {
+        try {
+          let row = item;
+          if (predicate) {
+            if (predicate.constructor.name === 'AsyncFunction') {
+              row = await (predicate(item) as Promise<R>);
+            } else {
+              row = predicate(item);
             }
-            if (request === 'PutRequest') {
-              return {
-                PutRequest: {
-                  Item: marshalledRow,
-                },
-              };
-            }
-            return undefined;
-          } catch (e) {
-            consoleError(e);
-            consoleLog({ item });
-            throw e;
           }
-        })
-        .filter(Boolean);
+          // skip to next if row is falsey
+          if (!row) continue;
 
-      if (items.length > 0) {
+          actualList.push(row);
+          const marshalledRow = marshall(row, {
+            ...DEFAULT_MARSHALL_OPTIONS,
+          });
+          if (request === 'DeleteRequest') {
+            requests.push({
+              DeleteRequest: {
+                Key: marshalledRow,
+              },
+            });
+          }
+          if (request === 'PutRequest') {
+            requests.push({
+              PutRequest: {
+                Item: marshalledRow,
+              },
+            });
+          }
+        } catch (e) {
+          consoleError(e);
+          consoleLog({ item });
+          throw e;
+        }
+      }
+
+      if (requests.length > 0) {
         const putRequests: BatchWriteItemInput['RequestItems'] = {
-          [TableName]: items as WriteRequest[],
+          [TableName]: requests,
         };
         const result = await batchWriteTable(putRequests);
         results.push(result);
