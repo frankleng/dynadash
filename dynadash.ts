@@ -15,6 +15,7 @@ import {
   QueryOutput,
   GetItemCommandOutput,
   WriteRequest,
+  UpdateItemCommandOutput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
@@ -32,14 +33,6 @@ export function chunkList<T>(list: T[], size: number): T[][] {
     if (i % size === 0) acc.push(list.slice(i, i + size));
     return acc;
   }, []);
-}
-
-/**
- * @param table
- */
-export function logTableNameUndefined(table = ''): void {
-  console.error('Table name is undefined. ', table);
-  console.log(__filename);
 }
 
 export function consoleLog(obj: unknown): void {
@@ -119,7 +112,6 @@ export async function getTableRow<R>(
   keys: { [x: string]: any },
   params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
-  if (!TableName) return logTableNameUndefined();
   const { projection, ...rest } = params || {};
 
   const query: GetItemInput = {
@@ -187,11 +179,10 @@ async function batchWriteTable(
  */
 function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
   return async function <R>(
-    TableName: PutItemInput['TableName'],
+    TableName: string,
     unmarshalledList: any[],
     predicate?: (item: any) => R | undefined | Promise<R | undefined>,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
-    if (!TableName) return logTableNameUndefined();
     const results = [];
     const actualList: R[] = [];
 
@@ -439,9 +430,8 @@ export async function updateTableRow<R>(
     ConditionExpression?: string;
   },
   ReturnValues = 'ALL_NEW',
-) {
-  if (!TableName) return logTableNameUndefined();
-  const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
+): Promise<(UpdateItemCommandOutput & { toJs: (predicate?: (row: R) => R) => R }) | null> {
+  const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames } = params;
   const query: UpdateItemCommandInput = {
     TableName,
     Key: marshall(keys),
@@ -455,7 +445,13 @@ export async function updateTableRow<R>(
   try {
     const ddb = new DynamoDBClient({});
     const result = await ddb.send(new UpdateItemCommand(query));
-    return { ...result, toJs: () => (result.Attributes ? (unmarshall(result.Attributes) as R) : {}) };
+    return {
+      ...result,
+      toJs: (predicate) => {
+        const item = (result.Attributes ? unmarshall(result.Attributes) : {}) as R;
+        return predicate ? predicate(item) : item;
+      },
+    };
   } catch (e) {
     consoleError(e);
     consoleError({ query });
