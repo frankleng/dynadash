@@ -20,6 +20,8 @@ import {
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
 
+export { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from '@aws-sdk/client-dynamodb';
+
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
 export const DEFAULT_MARSHALL_OPTIONS = { removeUndefinedValues: true, convertEmptyValues: true };
