@@ -1,3 +1,13 @@
+import * as sharedIniFileLoader from '@aws-sdk/shared-ini-file-loader';
+
+// https://github.com/aws/aws-sdk-js-v3/issues/3019#issuecomment-966900587
+Object.assign(sharedIniFileLoader, {
+  loadSharedConfigFiles: async (): Promise<sharedIniFileLoader.SharedConfigFiles> => ({
+    configFile: {},
+    credentialsFile: {},
+  }),
+});
+
 import {
   DynamoDBClient,
   GetItemCommand,
@@ -19,16 +29,6 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
-
-import * as sharedIniFileLoader from '@aws-sdk/shared-ini-file-loader';
-
-// https://github.com/aws/aws-sdk-js-v3/issues/3019#issuecomment-966900587
-Object.assign(sharedIniFileLoader, {
-  loadSharedConfigFiles: async (): Promise<sharedIniFileLoader.SharedConfigFiles> => ({
-    configFile: {},
-    credentialsFile: {},
-  }),
-});
 
 export { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from '@aws-sdk/client-dynamodb';
 
