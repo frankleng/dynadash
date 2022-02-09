@@ -77,28 +77,37 @@ function getExpressionFromMap(type: 'FilterExpression' | 'KeyConditionExpression
     const keyCondExpList = [];
     const ExpressionAttributeValues: { [key: string]: string | number } = {};
     const ExpressionAttributeNames: { [key: string]: string } = {};
-    for (const key in map) {
-      if (map.hasOwnProperty(key)) {
-        const v = map[key];
-        const attribute = `#${key}`;
-        const anchor = `:${key}`;
-        ExpressionAttributeNames[attribute] = key;
-        if (typeof v === 'string' || typeof v === 'number') {
-          keyCondExpList.push(`${attribute} = ${anchor}`);
-          ExpressionAttributeValues[anchor] = v;
-        } else {
-          keyCondExpList.push(`${attribute} ${v.op} ${anchor}`);
-          ExpressionAttributeValues[anchor] = v.value;
+    try {
+      for (const key in map) {
+        if (map.hasOwnProperty(key)) {
+          const v = map[key];
+          const attribute = `#${key}`;
+          const anchor = `:${key}`;
+          ExpressionAttributeNames[attribute] = key;
+          if (typeof v === 'undefined') {
+            throw Error('Value must not be undefined in an expression.');
+          }
+
+          if (typeof v === 'string' || typeof v === 'number') {
+            keyCondExpList.push(`${attribute} = ${anchor}`);
+            ExpressionAttributeValues[anchor] = v;
+          } else {
+            keyCondExpList.push(`${attribute} ${v.op} ${anchor}`);
+            ExpressionAttributeValues[anchor] = v.value;
+          }
         }
       }
+      return {
+        [type]: keyCondExpList.join(' and '),
+        ExpressionAttributeValues: marshall(ExpressionAttributeValues, {
+          ...DEFAULT_MARSHALL_OPTIONS,
+        }),
+        ExpressionAttributeNames,
+      };
+    } catch (e) {
+      consoleLog(map);
+      throw e;
     }
-    return {
-      [type]: keyCondExpList.join(' and '),
-      ExpressionAttributeValues: marshall(ExpressionAttributeValues, {
-        ...DEFAULT_MARSHALL_OPTIONS,
-      }),
-      ExpressionAttributeNames,
-    };
   };
 }
 
