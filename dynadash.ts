@@ -351,9 +351,7 @@ function getQueryExpression(
   return result;
 }
 
-async function handleQueryCommand<R>(
-  query: QueryCommandInput,
-): Promise<(QueryOutput & { toJs: (predicate?: (row: R) => R) => R[] }) | null> {
+async function handleQueryCommand<R>(query: QueryCommandInput) {
   try {
     let result = await ddbClient.send(new QueryCommand(query));
 
@@ -366,15 +364,21 @@ async function handleQueryCommand<R>(
       result.Items = items;
     }
 
+    function toJs(): R[];
+    function toJs<P>(transform: (row: R) => R | P): (R | P)[];
+
+    function toJs<P>(transform?: (row: R) => R | P) {
+      return result.Items?.length
+        ? result.Items.map((row) => {
+            const result = unmarshall(row) as R;
+            return transform ? transform(result) : result;
+          })
+        : [];
+    }
+
     return {
       ...result,
-      toJs: (predicate) =>
-        result.Items?.length
-          ? result.Items.map((row) => {
-              const result = unmarshall(row) as R;
-              return predicate ? predicate(result) : result;
-            })
-          : [],
+      toJs,
     };
   } catch (e) {
     consoleError(e);
