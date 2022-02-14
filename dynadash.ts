@@ -135,19 +135,18 @@ export async function getTableRow<R>(
   params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   const { projection, ...rest } = params || {};
-
-  const query: GetItemInput = {
-    TableName,
-    Key: marshall(keys),
-    ...rest,
-  };
   try {
+    const query: GetItemInput = {
+      TableName,
+      Key: marshall(keys),
+      ...rest,
+    };
     if (projection) query['ProjectionExpression'] = projection.join(',');
     const result = await ddbClient.send(new GetItemCommand(query));
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
     consoleError(e);
-    consoleError({ query });
+    consoleError({ TableName, keys, params });
     return null;
   }
 }
@@ -453,17 +452,17 @@ export async function updateTableRow<R>(
   ReturnValues = 'ALL_NEW',
 ): Promise<(UpdateItemCommandOutput & { toJs: (predicate?: (row: R) => R) => R }) | null> {
   const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames } = params;
-  const query: UpdateItemCommandInput = {
-    TableName,
-    Key: marshall(keys),
-    UpdateExpression,
-    ExpressionAttributeValues: marshall(expressionAttributeValues, {
-      ...DEFAULT_MARSHALL_OPTIONS,
-    }),
-    ExpressionAttributeNames,
-    ReturnValues,
-  };
   try {
+    const query: UpdateItemCommandInput = {
+      TableName,
+      Key: marshall(keys),
+      UpdateExpression,
+      ExpressionAttributeValues: marshall(expressionAttributeValues, {
+        ...DEFAULT_MARSHALL_OPTIONS,
+      }),
+      ExpressionAttributeNames,
+      ReturnValues,
+    };
     const result = await ddbClient.send(new UpdateItemCommand(query));
     return {
       ...result,
@@ -474,7 +473,7 @@ export async function updateTableRow<R>(
     };
   } catch (e) {
     consoleError(e);
-    consoleError({ query });
+    consoleError({ params });
     throw e;
   }
 }
