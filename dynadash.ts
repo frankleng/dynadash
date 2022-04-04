@@ -56,7 +56,7 @@ export function consoleError(obj: unknown): void {
   console.error(inspect(obj, false, null, false));
 }
 
-export type KeyCondMap = { op: '=' | '>' | '<' | '>=' | '<='; value: string | number };
+export type KeyCondMap = { op: '=' | '<>' | '>' | '<' | '>=' | '<='; value: string | number };
 export type KeyCondExpressionMap = {
   [key: string]: string | number | KeyCondMap;
 };
