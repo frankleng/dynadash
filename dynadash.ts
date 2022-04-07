@@ -1,12 +1,4 @@
-import * as sharedIniFileLoader from '@aws-sdk/shared-ini-file-loader';
-
-// https://github.com/aws/aws-sdk-js-v3/issues/3019#issuecomment-966900587
-Object.assign(sharedIniFileLoader, {
-  loadSharedConfigFiles: async (): Promise<sharedIniFileLoader.SharedConfigFiles> => ({
-    configFile: {},
-    credentialsFile: {},
-  }),
-});
+import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 
 import {
   DynamoDBClient,
@@ -36,7 +28,23 @@ export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
 export const DEFAULT_MARSHALL_OPTIONS = { removeUndefinedValues: true, convertEmptyValues: true };
 
-export const ddbClient = new DynamoDBClient({});
+export let ddbClientInstance: DynamoDBClient | null = null;
+
+export function getDdbClient(): DynamoDBClient {
+  if (!ddbClientInstance) {
+    ddbClientInstance = new DynamoDBClient({
+      requestHandler: new NodeHttpHandler({
+        socketTimeout: 10000, // <- this decreases the emfiles count, the Node.js default is 120000
+      }),
+    });
+  }
+  return ddbClientInstance;
+}
+
+export function setClient(client: DynamoDBClient): void {
+  ddbClientInstance = client;
+}
+
 /**
  * @param list
  * @param size
@@ -135,6 +143,7 @@ export async function getTableRow<R>(
   params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
 ): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
   const { projection, ...rest } = params || {};
+  const client = getDdbClient();
   try {
     const query: GetItemInput = {
       TableName,
@@ -142,7 +151,7 @@ export async function getTableRow<R>(
       ...rest,
     };
     if (projection) query['ProjectionExpression'] = projection.join(',');
-    const result = await ddbClient.send(new GetItemCommand(query));
+    const result = await client.send(new GetItemCommand(query));
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
     consoleError(e);
@@ -164,8 +173,9 @@ async function batchWriteTable(
   const query: BatchWriteItemInput = {
     RequestItems,
   };
+  const client = getDdbClient();
   try {
-    let result: BatchWriteItemCommandOutput | null = await ddbClient.send(new BatchWriteItemCommand(query));
+    let result: BatchWriteItemCommandOutput | null = await client.send(new BatchWriteItemCommand(query));
     if (
       retryCount < BATCH_WRITE_RETRY_THRESHOLD &&
       result.UnprocessedItems &&
@@ -272,9 +282,10 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
   return async function <R>(TableName: PutItemInput['TableName'], data: Partial<R>) {
+    const client = getDdbClient();
     try {
       if (request === 'PutItem') {
-        return ddbClient.send(
+        return client.send(
           new PutItemCommand({
             TableName,
             Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
@@ -282,7 +293,7 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
         );
       }
       if (request === 'DeleteItem') {
-        return ddbClient.send(
+        return client.send(
           new DeleteItemCommand({
             TableName,
             Key: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
@@ -351,13 +362,14 @@ function getQueryExpression(
 }
 
 async function handleQueryCommand<R>(query: QueryCommandInput) {
+  const client = getDdbClient();
   try {
-    let result = await ddbClient.send(new QueryCommand(query));
+    let result = await client.send(new QueryCommand(query));
 
     if (result?.LastEvaluatedKey && !query.ExclusiveStartKey && !query.Limit) {
       let items = result.Items || [];
       while (result.LastEvaluatedKey) {
-        result = await ddbClient.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
+        result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
         items = items.concat(result.Items || []);
       }
       result.Items = items;
@@ -452,6 +464,7 @@ export async function updateTableRow<R>(
   ReturnValues = 'ALL_NEW',
 ): Promise<(UpdateItemCommandOutput & { toJs: (predicate?: (row: R) => R) => R }) | null> {
   const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames } = params;
+  const client = getDdbClient();
   try {
     const query: UpdateItemCommandInput = {
       TableName,
@@ -463,7 +476,7 @@ export async function updateTableRow<R>(
       ExpressionAttributeNames,
       ReturnValues,
     };
-    const result = await ddbClient.send(new UpdateItemCommand(query));
+    const result = await client.send(new UpdateItemCommand(query));
     return {
       ...result,
       toJs: (predicate) => {
