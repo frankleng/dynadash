@@ -285,7 +285,7 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
   return async function <R>(
     TableName: PutItemInput['TableName'],
     data: Partial<R>,
-    params: Omit<PutItemInput, 'TableName' | 'Item'> | Omit<PutItemInput, 'TableName' | 'Key'>,
+    params?: Omit<PutItemInput, 'TableName' | 'Item'> | Omit<PutItemInput, 'TableName' | 'Key'>,
   ) {
     const client = getDdbClient();
     try {
