@@ -1,3 +1,4 @@
+import { DeleteItemInput } from '@aws-sdk/client-dynamodb/dist-types/models/models_0';
 import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 
 import {
@@ -281,7 +282,11 @@ export const batchDelTable = getBatchWriteRequest('DeleteRequest');
  * @param request
  */
 function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
-  return async function <R>(TableName: PutItemInput['TableName'], data: Partial<R>) {
+  return async function <R>(
+    TableName: PutItemInput['TableName'],
+    data: Partial<R>,
+    params: Omit<PutItemInput, 'TableName' | 'Item'> | Omit<PutItemInput, 'TableName' | 'Key'>,
+  ) {
     const client = getDdbClient();
     try {
       if (request === 'PutItem') {
@@ -289,6 +294,7 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
           new PutItemCommand({
             TableName,
             Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
+            ...params,
           }),
         );
       }
@@ -297,6 +303,7 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
           new DeleteItemCommand({
             TableName,
             Key: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
+            ...params,
           }),
         );
       }
