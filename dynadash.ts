@@ -1,4 +1,3 @@
-import { DeleteItemInput } from '@aws-sdk/client-dynamodb/dist-types/models/models_0';
 import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 
 import {
@@ -22,6 +21,8 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
+
+export * from '@aws-sdk/client-dynamodb';
 
 export { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from '@aws-sdk/client-dynamodb';
 
