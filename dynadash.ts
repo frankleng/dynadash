@@ -354,7 +354,7 @@ export async function putTableRow<R>(
  */
 export async function delTableRow<R>(
   TableName: DeleteItemInput['TableName'],
-  Key: Partial<R> & DeleteItemInput['Key'],
+  Key: Partial<R>,
   params?: Omit<DeleteItemInput, 'TableName' | 'Key'>,
 ): Promise<DeleteItemCommandOutput | null> {
   const client = getDdbClient();
@@ -362,7 +362,7 @@ export async function delTableRow<R>(
     const result = await client.send(
       new DeleteItemCommand({
         TableName,
-        Key: Key as DeleteItemInput['Key'],
+        Key: marshall(Key, { ...DEFAULT_MARSHALL_OPTIONS }),
         ...params,
       }),
     );
