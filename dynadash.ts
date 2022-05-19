@@ -18,6 +18,9 @@ import {
   GetItemCommandOutput,
   WriteRequest,
   UpdateItemCommandOutput,
+  PutItemCommandOutput,
+  DeleteItemCommandOutput,
+  DeleteItemInput,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { inspect } from 'util';
@@ -317,8 +320,59 @@ function getWriteRequest(request: 'PutItem' | 'DeleteItem') {
   };
 }
 
-export const putTableRow = getWriteRequest('PutItem');
-export const delTableRow = getWriteRequest('DeleteItem');
+/**
+ * @param TableName
+ * @param data
+ * @param params
+ */
+export async function putTableRow<R>(
+  TableName: PutItemInput['TableName'],
+  data: Partial<R>,
+  params?: Omit<PutItemInput, 'TableName' | 'Item'>,
+): Promise<PutItemCommandOutput | null> {
+  const client = getDdbClient();
+  try {
+    const result = await client.send(
+      new PutItemCommand({
+        TableName,
+        Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
+        ...params,
+      }),
+    );
+    return result || null;
+  } catch (e) {
+    consoleError(e);
+    consoleError({ TableName, data });
+    throw e;
+  }
+}
+
+/**
+ * @param TableName
+ * @param Key
+ * @param params
+ */
+export async function delTableRow<R>(
+  TableName: DeleteItemInput['TableName'],
+  Key: Partial<R> & DeleteItemInput['Key'],
+  params?: Omit<DeleteItemInput, 'TableName' | 'Key'>,
+): Promise<DeleteItemCommandOutput | null> {
+  const client = getDdbClient();
+  try {
+    const result = await client.send(
+      new DeleteItemCommand({
+        TableName,
+        Key: Key as DeleteItemInput['Key'],
+        ...params,
+      }),
+    );
+    return result || null;
+  } catch (e) {
+    consoleError(e);
+    consoleError({ TableName, Key });
+    throw e;
+  }
+}
 
 function getQueryExpression(
   query: QueryCommandInput,
