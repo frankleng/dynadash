@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "DynamoDb helpers",
   "main": "dist/dynadash.js",
   "typings": "dist/types/dynadash.d.ts",

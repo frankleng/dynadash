@@ -212,13 +212,13 @@ async function batchWriteTable(
  */
 
 function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
-  return async function <R, L extends R>(
+  return async function batchWrite<Result, SourceList>(
     TableName: string,
-    unmarshalledList: L[],
-    predicate?: <L>(item: L) => R | undefined | Promise<R | undefined>,
-  ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
+    unmarshalledList: SourceList[],
+    predicate?: (item: SourceList) => Result | undefined | Promise<Result | undefined>,
+  ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: Result[] }> {
     const results = [];
-    const actualList: R[] = [];
+    const actualList: Result[] = [];
 
     // AWS SDK limits batch requests to 25 - https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
     // so we have to chunk the list, and create separate requests
@@ -232,12 +232,12 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
       const requests: WriteRequest[] = [];
       for (const item of chunk) {
         try {
-          let row: R = item as unknown as R;
+          let row: Result = item as unknown as Result;
           if (predicate) {
             if (predicate.constructor.name === 'AsyncFunction') {
-              row = await (predicate(item) as Promise<R>);
+              row = await (predicate(item) as Promise<Result>);
             } else {
-              row = predicate(item) as R;
+              row = predicate(item) as Result;
             }
           }
           // skip to next if row is falsey
