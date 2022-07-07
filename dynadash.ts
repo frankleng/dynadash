@@ -146,7 +146,7 @@ export async function getTableRow<R>(
   TableName: GetItemInput['TableName'],
   keys: { [x: string]: any },
   params?: Omit<GetItemInput, 'TableName' | 'Key'> & { projection?: string[] },
-): Promise<(GetItemCommandOutput & { toJs: () => R | null }) | void | null> {
+): Promise<GetItemCommandOutput & { toJs: () => R | null }> {
   const { projection, ...rest } = params || {};
   const client = getDdbClient();
   try {
@@ -161,7 +161,7 @@ export async function getTableRow<R>(
   } catch (e) {
     consoleError(e);
     consoleError({ TableName, keys, params });
-    return null;
+    throw e;
   }
 }
 
@@ -210,11 +210,12 @@ async function batchWriteTable(
 /**
  * @param request
  */
+
 function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
-  return async function <R>(
+  return async function <R, L extends R>(
     TableName: string,
-    unmarshalledList: any[],
-    predicate?: (item: any) => R | undefined | Promise<R | undefined>,
+    unmarshalledList: L[],
+    predicate?: <L>(item: L) => R | undefined | Promise<R | undefined>,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: R[] } | void> {
     const results = [];
     const actualList: R[] = [];
@@ -231,12 +232,12 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
       const requests: WriteRequest[] = [];
       for (const item of chunk) {
         try {
-          let row = item;
+          let row: R = item as unknown as R;
           if (predicate) {
             if (predicate.constructor.name === 'AsyncFunction') {
               row = await (predicate(item) as Promise<R>);
             } else {
-              row = predicate(item);
+              row = predicate(item) as R;
             }
           }
           // skip to next if row is falsey
@@ -456,7 +457,7 @@ async function handleQueryCommand<R>(query: QueryCommandInput) {
   } catch (e) {
     consoleError(e);
     consoleError({ query });
-    return null;
+    throw e;
   }
 }
 
@@ -524,7 +525,7 @@ export async function updateTableRow<R>(
     ConditionExpression?: string;
   },
   ReturnValues = 'ALL_NEW',
-): Promise<(UpdateItemCommandOutput & { toJs: (predicate?: (row: R) => R) => R }) | null> {
+): Promise<UpdateItemCommandOutput & { toJs: (iterator?: (row: R) => R) => R }> {
   const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames } = params;
   const client = getDdbClient();
   try {
@@ -541,9 +542,9 @@ export async function updateTableRow<R>(
     const result = await client.send(new UpdateItemCommand(query));
     return {
       ...result,
-      toJs: (predicate) => {
+      toJs: (iterator) => {
         const item = (result.Attributes ? unmarshall(result.Attributes) : {}) as R;
-        return predicate ? predicate(item) : item;
+        return iterator ? iterator(item) : item;
       },
     };
   } catch (e) {
