@@ -31,7 +31,7 @@ export type { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput 
 
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
-export const DEFAULT_MARSHALL_OPTIONS = { removeUndefinedValues: true, convertEmptyValues: true };
+export const DEFAULT_MARSHALL_OPTIONS = { removeUndefinedValues: true };
 
 export let ddbClientInstance: DynamoDBClient | null = null;
 
