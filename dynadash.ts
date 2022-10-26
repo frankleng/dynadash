@@ -27,7 +27,7 @@ import { inspect } from 'util';
 
 export * from '@aws-sdk/client-dynamodb';
 
-export { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from '@aws-sdk/client-dynamodb';
+export type { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from '@aws-sdk/client-dynamodb';
 
 export const BATCH_WRITE_RETRY_THRESHOLD = 10;
 
