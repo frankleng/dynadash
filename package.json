@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "DynamoDb helpers",
   "main": "dist/dynadash.js",
   "typings": "dist/types/dynadash.d.ts",
@@ -31,7 +31,6 @@
     "node": ">=14"
   },
   "devDependencies": {
-    "@aws-sdk/types": "^3.197.0",
     "@types/node": "^15.14.9",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
