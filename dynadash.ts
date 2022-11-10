@@ -231,22 +231,31 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
     for (const chunk of chunkedList) {
       const requests: WriteRequest[] = [];
       for (const item of chunk) {
-        try {
-          let row: Result = item as unknown as Result;
-          if (predicate) {
+        let row: Result = item as unknown as Result;
+        if (predicate) {
+          try {
             if (predicate.constructor.name === 'AsyncFunction') {
               row = await (predicate(item) as Promise<Result>);
             } else {
               row = predicate(item) as Result;
             }
+          } catch (e) {
+            consoleError(e);
+            console.log('Predicate Failure - ');
+            consoleLog({ item, row });
+            throw e;
           }
+
           // skip to next if row is falsey
           if (!row) continue;
+        }
 
+        const marshallOptions = {
+          ...DEFAULT_MARSHALL_OPTIONS,
+        };
+        try {
           actualList.push(row);
-          const marshalledRow = marshall(row, {
-            ...DEFAULT_MARSHALL_OPTIONS,
-          });
+          const marshalledRow = marshall(row, marshallOptions);
           if (request === 'DeleteRequest') {
             requests.push({
               DeleteRequest: {
@@ -263,7 +272,8 @@ function getBatchWriteRequest(request: 'PutRequest' | 'DeleteRequest') {
           }
         } catch (e) {
           consoleError(e);
-          consoleLog({ item });
+          console.log('Marshall Failure - ');
+          consoleLog({ item, row, marshallOptions });
           throw e;
         }
       }
