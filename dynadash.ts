@@ -353,7 +353,7 @@ export async function putTableRow<R>(
     return result || null;
   } catch (e) {
     consoleError(e);
-    consoleError({ TableName, data });
+    consoleError({ TableName, data, params });
     throw e;
   }
 }
@@ -380,7 +380,7 @@ export async function delTableRow<R>(
     return result || null;
   } catch (e) {
     consoleError(e);
-    consoleError({ TableName, Key });
+    consoleError({ TableName, Key, params });
     throw e;
   }
 }
@@ -559,7 +559,7 @@ export async function updateTableRow<R>(
     };
   } catch (e) {
     consoleError(e);
-    consoleError({ params });
+    consoleError({ TableName, keys, params, ReturnValues });
     throw e;
   }
 }
