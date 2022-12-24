@@ -22,5 +22,8 @@
     ],
     "outDir": "./dist"
   },
-  "exclude": ["node_modules", "dist", "doc"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": ["node_modules", "dist", "doc", "tests"]
 }
