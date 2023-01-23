@@ -9,7 +9,8 @@ import {
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { getDdbClient } from "./client";
 import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
-import { consoleError } from "./utils";
+import { ConditionExpressionMap } from "./types";
+import { consoleError, getConditionExpression } from "./utils";
 
 /**
  * @param TableName
@@ -19,21 +20,36 @@ import { consoleError } from "./utils";
 export async function putTableRow<R>(
   TableName: PutItemInput["TableName"],
   data: Partial<R>,
-  params?: Omit<PutItemInput, "TableName" | "Item">,
+  params?: Omit<PutItemInput, "TableName" | "Item"> & { conditionExpressionMapList?: ConditionExpressionMap },
 ): Promise<PutItemCommandOutput | null> {
   const client = getDdbClient();
-  try {
-    const result = await client.send(
-      new PutItemCommand({
-        TableName,
-        Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
-        ...params,
-      }),
+  if (params?.conditionExpressionMapList) {
+    const { ConditionExpression, ExpressionAttributeNames, expressionAttributeValues } = getConditionExpression(
+      data,
+      params.conditionExpressionMapList,
     );
+    params = {
+      ...params,
+      ExpressionAttributeNames,
+      ConditionExpression,
+    };
+    if (expressionAttributeValues) {
+      params.ExpressionAttributeValues = marshall(expressionAttributeValues, { ...DEFAULT_MARSHALL_OPTIONS });
+    }
+  }
+
+  const query: PutItemInput = {
+    TableName,
+    Item: marshall(data, { ...DEFAULT_MARSHALL_OPTIONS }),
+    ...params,
+  };
+
+  try {
+    const result = await client.send(new PutItemCommand(query));
     return result || null;
   } catch (e) {
     consoleError(e);
-    consoleError({ TableName, data, params });
+    consoleError({ query });
     throw e;
   }
 }

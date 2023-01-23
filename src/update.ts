@@ -9,7 +9,7 @@ export async function updateTableRow<R>(
   keys: Partial<R>,
   params: {
     UpdateExpression: string;
-    expressionAttributeValues: { [x: string]: any };
+    expressionAttributeValues: { [x: string]: any } | undefined;
     ExpressionAttributeNames?: { [x: string]: string };
     ConditionExpression?: string;
   },
@@ -20,7 +20,7 @@ export async function updateTableRow<R>(
   try {
     const query: UpdateItemCommandInput = {
       TableName,
-      Key: marshall(keys),
+      Key: marshall(keys, { ...DEFAULT_MARSHALL_OPTIONS }),
       UpdateExpression,
       ExpressionAttributeValues: marshall(expressionAttributeValues, {
         ...DEFAULT_MARSHALL_OPTIONS,

@@ -9,7 +9,7 @@ import { marshall } from "@aws-sdk/util-dynamodb";
 import { inspect } from "util";
 import { getDdbClient } from "./client";
 import { BATCH_WRITE_RETRY_THRESHOLD, DEFAULT_MARSHALL_OPTIONS } from "./constants";
-import { FilterExpressionMap, KeyCondExpressionMap } from "./types";
+import { ConditionExpressionMap, FilterExpressionMap, KeyCondExpressionMap } from "./types";
 
 /**
  * @param list
@@ -253,4 +253,88 @@ export function getQueryExpression(
   }
 
   return result;
+}
+
+/**
+ *
+ * @param row
+ * @param condExps
+ * @param includeAll - if true, will include all fields in the row, even if they are not in the condExps, updates usually need all fields, write conditions do not
+ */
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function getConditionExpression<T extends {}>(row: T, condExps?: ConditionExpressionMap, includeAll = false) {
+  const updateExpressions = [];
+  const expressionAttributeValues: {
+    [x: string]: any;
+  } = {};
+  const ExpressionAttributeNames: { [x: string]: string } = {};
+
+  const conditionExpression: string[] = [];
+
+  if (Array.isArray(condExps)) {
+    for (const condExp of condExps) {
+      const { key, op, value, func, logicOp } = condExp;
+
+      let cond;
+      if (op === "IN") {
+        const valStr = value
+          .map((v, i) => {
+            const k = `:${key}IN-${i}`;
+            expressionAttributeValues[k] = v;
+            return k;
+          })
+          .join(", ");
+        cond = `(#${key} IN (${valStr}))`;
+        ExpressionAttributeNames[`#${key}`] = key;
+      } else if (op === "BETWEEN") {
+        cond = `(#${key} between :${key}Xaa and :${key}Xbb)`;
+        expressionAttributeValues[`:${key}Xaa`] = value[0];
+        expressionAttributeValues[`:${key}Xbb`] = value[1];
+        ExpressionAttributeNames[`#${key}`] = key;
+      } else if (typeof op === "undefined" && func) {
+        if (!op) {
+          cond = `${func}(#${key})`;
+          ExpressionAttributeNames[`#${key}`] = key;
+        } else {
+          cond = `${func}(#${key}) ${op} :${key}Xvv`;
+          expressionAttributeValues[`:${key}Xvv`] = value;
+          ExpressionAttributeNames[`#${key}`] = key;
+        }
+      } else {
+        cond = `#${key} ${op} :${key}Xvv`;
+        ExpressionAttributeNames[`#${key}`] = key;
+        expressionAttributeValues[`:${key}Xvv`] = value;
+      }
+
+      if (logicOp) cond += ` ${logicOp}`;
+      conditionExpression.push(cond);
+    }
+  } else if (typeof condExps === "string") {
+    conditionExpression.push(condExps);
+  }
+
+  if (includeAll) {
+    for (const key in row) {
+      if (row.hasOwnProperty(key)) {
+        const val = row[key];
+        updateExpressions.push(`#${key} = :${key}`);
+        expressionAttributeValues[`:${key}`] = val;
+        ExpressionAttributeNames[`#${key}`] = key;
+      }
+    }
+  } else {
+    for (const key in row) {
+      if (ExpressionAttributeNames[`#${key}`]) {
+        updateExpressions.push(`#${key} = :${key}`);
+      }
+    }
+  }
+
+  return {
+    ConditionExpression: conditionExpression.join(" ") || undefined,
+    UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+    expressionAttributeValues:
+      Object.keys(expressionAttributeValues).length > 0 ? expressionAttributeValues : undefined,
+    ExpressionAttributeNames,
+  };
 }

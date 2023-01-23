@@ -1,6 +1,7 @@
 import { GetItemCommand, GetItemCommandOutput, GetItemInput } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { getDdbClient } from "./client";
+import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { consoleError } from "./utils";
 
 /**
@@ -18,7 +19,7 @@ export async function getTableRow<R>(
   try {
     const query: GetItemInput = {
       TableName,
-      Key: marshall(keys),
+      Key: marshall(keys, { ...DEFAULT_MARSHALL_OPTIONS }),
       ...rest,
     };
     if (projection) query["ProjectionExpression"] = projection.join(",");
