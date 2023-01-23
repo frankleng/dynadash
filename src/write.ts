@@ -12,17 +12,11 @@ import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { ConditionExpressionMap } from "./types";
 import { consoleError, getConditionExpression } from "./utils";
 
-/**
- * @param TableName
- * @param data
- * @param params
- */
-export async function putTableRow<R>(
+export function getPutItemInput<R>(
   TableName: PutItemInput["TableName"],
   data: Partial<R>,
   params?: Omit<PutItemInput, "TableName" | "Item"> & { conditionExpressionMapList?: ConditionExpressionMap },
-): Promise<PutItemCommandOutput | null> {
-  const client = getDdbClient();
+) {
   if (params?.conditionExpressionMapList) {
     const { ConditionExpression, ExpressionAttributeNames, expressionAttributeValues } = getConditionExpression(
       data,
@@ -44,6 +38,22 @@ export async function putTableRow<R>(
     ...params,
   };
 
+  return query;
+}
+
+/**
+ * @param TableName
+ * @param data
+ * @param params
+ */
+export async function putTableRow<R>(
+  TableName: PutItemInput["TableName"],
+  data: Partial<R>,
+  params?: Omit<PutItemInput, "TableName" | "Item"> & { conditionExpressionMapList?: ConditionExpressionMap },
+): Promise<PutItemCommandOutput | null> {
+  const client = getDdbClient();
+
+  const query = getPutItemInput(TableName, data, params);
   try {
     const result = await client.send(new PutItemCommand(query));
     return result || null;

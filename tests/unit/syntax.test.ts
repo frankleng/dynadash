@@ -1,5 +1,7 @@
-import { shallowUpdateTableRow } from "../../src/shallowUpdate";
+import { putTableRow, shallowUpdateTableRow } from "../../src";
 import * as update from "../../src/update";
+import { getPutItemInput } from "../../src/write";
+import * as write from "../../src/write";
 
 describe("Query syntax", () => {
   afterEach(() => {
@@ -39,5 +41,27 @@ describe("Query syntax", () => {
         expressionAttributeValues: { ":idXvv": "123", ":yo": "John" },
       },
     );
+  });
+
+  it("should generate a conditional write query", async () => {
+    const query = getPutItemInput(
+      "table",
+      { id: "yo", context: "asdf", expiresAt: 1234567890 },
+      {
+        conditionExpressionMapList: [{ key: "id", func: "attribute_not_exists" }],
+      },
+    );
+
+    expect(query).toEqual({
+      TableName: "table",
+      Item: {
+        id: { S: "yo" },
+        context: { S: "asdf" },
+        expiresAt: { N: "1234567890" },
+      },
+      conditionExpressionMapList: [{ key: "id", func: "attribute_not_exists" }],
+      ExpressionAttributeNames: { "#id": "id" },
+      ConditionExpression: "attribute_not_exists(#id)",
+    });
   });
 });
