@@ -1,5 +1,5 @@
 import * as sharedIniFileLoader from "@aws-sdk/shared-ini-file-loader";
-import { SharedConfigFiles } from "@aws-sdk/types";
+import type { SharedConfigFiles } from "@aws-sdk/types";
 Object.assign(sharedIniFileLoader, {
   loadSharedConfigFiles: async (): Promise<SharedConfigFiles> => ({
     configFile: {},
