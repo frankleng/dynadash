@@ -1,12 +1,3 @@
-import * as sharedIniFileLoader from "@aws-sdk/shared-ini-file-loader";
-import type { SharedConfigFiles } from "@aws-sdk/types";
-Object.assign(sharedIniFileLoader, {
-  loadSharedConfigFiles: async (): Promise<SharedConfigFiles> => ({
-    configFile: {},
-    credentialsFile: {},
-  }),
-});
-
 export * from "@aws-sdk/client-dynamodb";
 
 export * from "./constants";
