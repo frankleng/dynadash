@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "description": "DynamoDb helpers",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
@@ -49,6 +49,7 @@
     "@aws-sdk/client-dynamodb": "^3.197.0",
     "@aws-sdk/node-http-handler": "^3.197.0",
     "@aws-sdk/shared-ini-file-loader": "^3.197.0",
+    "@aws-sdk/types": "^3.257.0",
     "@aws-sdk/util-dynamodb": "^3.238.0",
     "aws-xray-sdk-core": "^3.3.8"
   }
