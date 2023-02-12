@@ -11,6 +11,8 @@ import { getDdbClient } from "./client";
 import { BATCH_WRITE_RETRY_THRESHOLD, DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { ConditionExpressionMap, FilterExpressionMap, KeyCondExpressionMap } from "./types";
 
+const MAX_BATCH_WRITE_SIZE = 25;
+
 /**
  * @param list
  * @param size
@@ -131,34 +133,36 @@ export function getBatchWriteRequest(request: "PutRequest" | "DeleteRequest") {
   return async function batchWrite<Result, SourceList>(
     TableName: string,
     unmarshalledList: SourceList[],
-    predicate?: (item: SourceList) => Result | undefined | Promise<Result | undefined>,
+    transformer?: (item: SourceList, i: number) => Result | undefined | Promise<Result | undefined>,
   ): Promise<{ results: (BatchWriteItemCommandOutput | null)[]; actualList: Result[] }> {
     const results = [];
     const actualList: Result[] = [];
 
     // AWS SDK limits batch requests to 25 - https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
     // so we have to chunk the list, and create separate requests
-    const chunkedList = chunkList(unmarshalledList, 25);
+    const chunkedList = chunkList(unmarshalledList, MAX_BATCH_WRITE_SIZE);
 
     console.info({ TableName });
     console.info("list length", unmarshalledList.length);
     console.info("# of chunks", chunkedList.length);
 
-    for (const chunk of chunkedList) {
+    for (const [i, chunk] of chunkedList.entries()) {
       const requests: WriteRequest[] = [];
-      for (const item of chunk) {
+      const baseCount = i * MAX_BATCH_WRITE_SIZE;
+      for (const [j, item] of chunk.entries()) {
+        const totalIndex = baseCount + j;
         let row: Result = item as unknown as Result;
-        if (predicate) {
+        if (transformer) {
           try {
-            if (predicate.constructor.name === "AsyncFunction") {
-              row = await (predicate(item) as Promise<Result>);
+            if (transformer.constructor.name === "AsyncFunction") {
+              row = await (transformer(item, totalIndex) as Promise<Result>);
             } else {
-              row = predicate(item) as Result;
+              row = transformer(item, totalIndex) as Result;
             }
           } catch (e) {
             consoleError(e);
             console.log("Predicate Failure - ");
-            consoleLog({ item, row });
+            consoleLog({ TableName, item, row });
             throw e;
           }
 
@@ -189,7 +193,7 @@ export function getBatchWriteRequest(request: "PutRequest" | "DeleteRequest") {
         } catch (e) {
           consoleError(e);
           console.log("Marshall Failure - ");
-          consoleLog({ item, row, marshallOptions });
+          consoleLog({ TableName, item, row, marshallOptions });
           throw e;
         }
       }
