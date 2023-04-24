@@ -47,13 +47,22 @@ export function getExpressionFromMap(type: "FilterExpression" | "KeyConditionExp
           if (typeof v === "undefined") {
             throw Error("Value must not be undefined in an expression.");
           }
-
           if (typeof v === "string" || typeof v === "number") {
             keyCondExpList.push(`${attribute} = ${anchor}`);
             ExpressionAttributeValues[anchor] = v;
           } else {
-            keyCondExpList.push(`${attribute} ${v.op} ${anchor}`);
-            ExpressionAttributeValues[anchor] = v.value;
+            if (v.op === "BETWEEN") {
+              const lowVal = v.low;
+              const highVal = v.high;
+              const lowAnchor = `:${key}_low`;
+              const highAnchor = `:${key}_high`;
+              keyCondExpList.push(`${attribute} BETWEEN ${lowAnchor} AND ${highAnchor}`);
+              ExpressionAttributeValues[lowAnchor] = lowVal;
+              ExpressionAttributeValues[highAnchor] = highVal;
+            } else {
+              keyCondExpList.push(`${attribute} ${v.op} ${anchor}`);
+              ExpressionAttributeValues[anchor] = v.value;
+            }
           }
         }
       }

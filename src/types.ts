@@ -1,6 +1,9 @@
 export type KeyCondMap = { op: "=" | "<>" | ">" | "<" | ">=" | "<="; value: string | number };
+
+export type KeyCondBetweenMap = { op: "BETWEEN"; low: string; high: string };
+
 export type KeyCondExpressionMap = {
-  [key: string]: string | number | KeyCondMap;
+  [key: string]: string | number | KeyCondMap | KeyCondBetweenMap;
 };
 export type FilterExpressionMap = {
   [key: string]:
