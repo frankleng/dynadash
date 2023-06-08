@@ -18,7 +18,7 @@ export async function updateTableRow<R>(
     ExpressionAttributeNames?: { [x: string]: string };
     ConditionExpression?: string;
   },
-  ReturnValues = ReturnValue.NONE,
+  ReturnValues: ReturnValue = ReturnValue.NONE,
 ): Promise<UpdateItemCommandOutput & { toJs: (iterator?: (row: R) => R) => R }> {
   const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
   const client = getDdbClient();

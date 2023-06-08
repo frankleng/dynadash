@@ -8,7 +8,7 @@ export async function shallowUpdateTableRow<R>(
   keys: Partial<R>,
   row: Partial<R>,
   condExps?: ConditionExpressionMap,
-  ReturnValues = ReturnValue.NONE,
+  ReturnValues: ReturnValue = ReturnValue.NONE,
 ) {
   const { UpdateExpression, ExpressionAttributeNames, expressionAttributeValues, ConditionExpression } =
     getConditionExpression(row, condExps, true);
