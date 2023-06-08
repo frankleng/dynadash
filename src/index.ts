@@ -1,12 +1,8 @@
 export * from "@aws-sdk/client-dynamodb";
+export type * from "@aws-sdk/client-dynamodb";
+export type * from "./types";
 
 export * from "./constants";
-
-export { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-
-// types
-export type { QueryOutput, QueryInput, BatchWriteItemOutput, BatchGetItemOutput } from "@aws-sdk/client-dynamodb";
-export type { KeyCondMap, KeyCondExpressionMap, FilterExpressionMap } from "./types";
 
 // client, utils, constants
 export { setClient, ddbClientInstance, getDdbClient } from "./client";
