@@ -40,6 +40,7 @@ describe("Query syntax", () => {
         UpdateExpression: "SET #yo = :yo",
         expressionAttributeValues: { ":idXvv": "123", ":yo": "John" },
       },
+      "NONE",
     );
   });
 
