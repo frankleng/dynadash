@@ -1,3 +1,5 @@
+import { DB_RETURN_VALUE } from "./constants";
+
 export type KeyCondMap = { op: "=" | "<>" | ">" | "<" | ">=" | "<="; value: string | number };
 
 export type KeyCondBetweenMap = { op: "BETWEEN"; low: string | number; high: string | number };
@@ -40,3 +42,8 @@ export type ConditionExpressionMap =
           value?: string | number;
         }
     )[];
+
+/**
+ * @public
+ */
+export type DbReturnValue = typeof DB_RETURN_VALUE[keyof typeof DB_RETURN_VALUE];

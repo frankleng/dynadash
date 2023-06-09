@@ -5,11 +5,8 @@ export type * from "./types";
 export * from "./constants";
 
 export { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-
-// enums
-export { ReturnValue } from "@aws-sdk/client-dynamodb";
-// types
-export type { KeyCondMap, KeyCondExpressionMap, FilterExpressionMap } from "./types";
+export type { ReturnValue } from "./types";
+export { ReturnValue as ReturnValues } from "./constants";
 
 // client, utils, constants
 export { setClient, ddbClientInstance, getDdbClient } from "./client";

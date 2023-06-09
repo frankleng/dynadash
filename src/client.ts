@@ -6,8 +6,10 @@ export let ddbClientInstance: DynamoDBClient | null = null;
 export function getDdbClient(): DynamoDBClient {
   if (!ddbClientInstance) {
     ddbClientInstance = new DynamoDBClient({
+      maxAttempts: 5,
       requestHandler: new NodeHttpHandler({
-        socketTimeout: 10000, // <- this decreases the emfiles count, the Node.js default is 120000
+        socketTimeout: 10000,
+        connectionTimeout: 10000,
       }),
     });
   }

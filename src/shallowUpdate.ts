@@ -1,5 +1,6 @@
-import { ReturnValue, UpdateItemCommandInput } from "@aws-sdk/client-dynamodb";
-import { ConditionExpressionMap } from "./types";
+import { UpdateItemCommandInput } from "@aws-sdk/client-dynamodb";
+import type { ConditionExpressionMap, DbReturnValue } from "./types";
+import { DB_RETURN_VALUE } from "./constants";
 import { updateTableRow } from "./update";
 import { getConditionExpression } from "./utils";
 
@@ -8,7 +9,7 @@ export async function shallowUpdateTableRow<R>(
   keys: Partial<R>,
   row: Partial<R>,
   condExps?: ConditionExpressionMap,
-  ReturnValues: ReturnValue = ReturnValue.NONE,
+  ReturnValues: DbReturnValue = DB_RETURN_VALUE.NONE,
 ) {
   const { UpdateExpression, ExpressionAttributeNames, expressionAttributeValues, ConditionExpression } =
     getConditionExpression(row, condExps, true);
