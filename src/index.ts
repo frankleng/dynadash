@@ -4,6 +4,8 @@ export type * from "./types";
 
 export * from "./constants";
 
+export { DB_RETURN_VALUE } from "./constants";
+
 export { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 // client, utils, constants
