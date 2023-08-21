@@ -155,6 +155,9 @@ export function getBatchWriteRequest(request: "PutRequest" | "DeleteRequest") {
     console.info("list length", unmarshalledList.length);
     console.info("# of chunks", chunkedList.length);
 
+    // only dedupe delete for now
+    const dedupeRequests: { [key: string]: true } = {};
+
     for (const [i, chunk] of chunkedList.entries()) {
       const requests: WriteRequest[] = [];
       const baseCount = i * MAX_BATCH_WRITE_SIZE;
@@ -184,18 +187,21 @@ export function getBatchWriteRequest(request: "PutRequest" | "DeleteRequest") {
         };
         try {
           actualList.push(row);
-          const marshalledRow = marshall(row, marshallOptions);
           if (request === "DeleteRequest") {
+            const dedupeKey = JSON.stringify(row);
+            if (dedupeRequests[dedupeKey]) continue;
+
             requests.push({
               DeleteRequest: {
-                Key: marshalledRow,
+                Key: marshall(row, marshallOptions),
               },
             });
+            dedupeRequests[dedupeKey] = true;
           }
           if (request === "PutRequest") {
             requests.push({
               PutRequest: {
-                Item: marshalledRow,
+                Item: marshall(row, marshallOptions),
               },
             });
           }
