@@ -1,9 +1,8 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import https from "https";
-const agent = new https.Agent({
-  maxSockets: 25,
-});
+import http from "http";
+
 export let ddbClientInstance: DynamoDBClient | null = null;
 
 export function getDdbClient(): DynamoDBClient {
@@ -11,7 +10,14 @@ export function getDdbClient(): DynamoDBClient {
     ddbClientInstance = new DynamoDBClient({
       maxAttempts: 5,
       requestHandler: new NodeHttpHandler({
-        httpsAgent: agent,
+        socketTimeout: 10000,
+        connectionTimeout: 10000,
+        httpsAgent: new https.Agent({
+          maxSockets: 50,
+        }),
+        httpAgent: new http.Agent({
+          maxSockets: 50,
+        }),
       }),
     });
   }
