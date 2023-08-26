@@ -9,11 +9,14 @@ export async function handleQueryCommand<R>(query: QueryCommandInput) {
   try {
     let result = await client.send(new QueryCommand(query));
 
-    if (result?.LastEvaluatedKey && !query.ExclusiveStartKey && !query.Limit) {
+    if (result?.LastEvaluatedKey && !query.ExclusiveStartKey) {
       let items = result.Items || [];
       while (result.LastEvaluatedKey) {
         result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
         items = items.concat(result.Items || []);
+        if (query?.Limit && items.length >= query.Limit) {
+          break;
+        }
       }
       result.Items = items;
     }
