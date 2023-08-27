@@ -1,11 +1,11 @@
 import { QueryCommand, QueryCommandInput } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { getDdbClient } from "./client";
+import { initDdbClient } from "./client";
 import { FilterExpressionMap, KeyCondExpressionMap } from "./types";
 import { consoleError, getQueryExpression } from "./utils";
 
 export async function handleQueryCommand<R>(query: QueryCommandInput) {
-  const client = getDdbClient();
+  const client = initDdbClient();
   try {
     let result = await client.send(new QueryCommand(query));
 

@@ -1,6 +1,6 @@
 import { GetItemCommand, GetItemCommandOutput, GetItemInput } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { getDdbClient } from "./client";
+import { initDdbClient } from "./client";
 import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { consoleError } from "./utils";
 
@@ -15,7 +15,7 @@ export async function getTableRow<R>(
   params?: Omit<GetItemInput, "TableName" | "Key"> & { projection?: string[] },
 ): Promise<GetItemCommandOutput & { toJs: () => R | null }> {
   const { projection, ...rest } = params || {};
-  const client = getDdbClient();
+  const client = initDdbClient();
   try {
     const query: GetItemInput = {
       TableName,

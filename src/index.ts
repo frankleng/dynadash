@@ -7,7 +7,7 @@ export * from "./constants";
 export { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 // client, utils, constants
-export { setClient, ddbClientInstance, getDdbClient } from "./client";
+export { setClient, ddbClientInstance, initDdbClient } from "./client";
 export { consoleError, consoleLog, chunkList, batchWriteTable } from "./utils";
 export { DEFAULT_MARSHALL_OPTIONS, DB_RETURN_VALUE } from "./constants";
 

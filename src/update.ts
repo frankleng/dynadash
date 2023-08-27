@@ -1,6 +1,6 @@
 import { UpdateItemCommand, UpdateItemCommandInput, UpdateItemCommandOutput } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { getDdbClient } from "./client";
+import { initDdbClient } from "./client";
 import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { DbReturnValue } from "./types";
 import { consoleError } from "./utils";
@@ -17,7 +17,7 @@ export async function updateTableRow<R>(
   ReturnValues?: DbReturnValue,
 ): Promise<UpdateItemCommandOutput & { toJs: (iterator?: (row: R) => R) => R }> {
   const { UpdateExpression, expressionAttributeValues, ExpressionAttributeNames, ConditionExpression } = params;
-  const client = getDdbClient();
+  const client = initDdbClient();
   try {
     const query: UpdateItemCommandInput = {
       TableName,

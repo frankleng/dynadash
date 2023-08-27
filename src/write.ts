@@ -7,7 +7,7 @@ import {
   PutItemInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import { getDdbClient } from "./client";
+import { initDdbClient } from "./client";
 import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { ConditionExpressionMap } from "./types";
 import { consoleError, getConditionExpression } from "./utils";
@@ -51,7 +51,7 @@ export async function putTableRow<R>(
   data: Partial<R>,
   params?: Omit<PutItemInput, "TableName" | "Item"> & { conditionExpressionMapList?: ConditionExpressionMap },
 ): Promise<PutItemCommandOutput | null> {
-  const client = getDdbClient();
+  const client = initDdbClient();
 
   const query = getPutItemInput(TableName, data, params);
   try {
@@ -74,7 +74,7 @@ export async function delTableRow<R>(
   Key: Partial<R>,
   params?: Omit<DeleteItemInput, "TableName" | "Key">,
 ): Promise<DeleteItemCommandOutput | null> {
-  const client = getDdbClient();
+  const client = initDdbClient();
   try {
     const result = await client.send(
       new DeleteItemCommand({

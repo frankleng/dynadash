@@ -7,7 +7,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { inspect } from "util";
-import { getDdbClient } from "./client";
+import { initDdbClient } from "./client";
 import { BATCH_WRITE_RETRY_THRESHOLD, DEFAULT_MARSHALL_OPTIONS } from "./constants";
 import { ConditionExpressionMap, FilterExpressionMap, KeyCondExpressionMap } from "./types";
 
@@ -106,7 +106,7 @@ export async function batchWriteTable(
   const query: BatchWriteItemInput = {
     RequestItems,
   };
-  const client = getDdbClient();
+  const client = initDdbClient();
   try {
     let result: BatchWriteItemCommandOutput | null = await client.send(new BatchWriteItemCommand(query));
     if (

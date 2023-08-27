@@ -1,14 +1,18 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, DynamoDBClientConfig } from "@aws-sdk/client-dynamodb";
 import { NodeHttpHandler } from "@aws-sdk/node-http-handler";
 import https from "https";
 import http from "http";
 
 export let ddbClientInstance: DynamoDBClient | null = null;
 
-export function getDdbClient(): DynamoDBClient {
+export function initDdbClient(
+  credentialDefaultProvider?: DynamoDBClientConfig["credentialDefaultProvider"],
+  maxAttempts = 5,
+): DynamoDBClient {
   if (!ddbClientInstance) {
     ddbClientInstance = new DynamoDBClient({
-      maxAttempts: 5,
+      credentialDefaultProvider,
+      maxAttempts,
       requestHandler: new NodeHttpHandler({
         socketTimeout: 10000,
         connectionTimeout: 10000,
