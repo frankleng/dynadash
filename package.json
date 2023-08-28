@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.9.11",
+  "version": "1.9.12",
   "description": "DynamoDb helpers",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
@@ -47,9 +47,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.385.0",
-    "@aws-sdk/node-http-handler": "^3.374.0",
     "@aws-sdk/types": "^3.378.0",
-    "@aws-sdk/util-dynamodb": "^3.385.0",
-    "aws-xray-sdk-core": "^3.5.1"
+    "@aws-sdk/util-dynamodb": "^3.385.0"
   }
 }
