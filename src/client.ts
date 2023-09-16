@@ -7,10 +7,13 @@ export function initDdbClient(
   maxAttempts = 5,
 ): DynamoDBClient {
   if (!ddbClientInstance) {
-    ddbClientInstance = new DynamoDBClient({
-      credentialDefaultProvider,
+    const config: DynamoDBClientConfig = {
       maxAttempts,
-    });
+    };
+    if (credentialDefaultProvider) {
+      config.credentialDefaultProvider = credentialDefaultProvider;
+    }
+    ddbClientInstance = new DynamoDBClient(config);
   }
   return ddbClientInstance;
 }
