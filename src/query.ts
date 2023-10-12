@@ -1,23 +1,43 @@
-import { QueryCommand, QueryCommandInput } from "@aws-sdk/client-dynamodb";
+import { Capacity, QueryCommand, QueryCommandInput, QueryCommandOutput } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { initDdbClient } from "./client";
 import { FilterExpressionMap, KeyCondExpressionMap } from "./types";
-import { consoleError, getQueryExpression } from "./utils";
+import { consoleError, getQueryExpression, mergeCapacityStats } from "./utils";
 
-export async function handleQueryCommand<R>(query: QueryCommandInput) {
+export async function handleQueryCommand<R>(query: QueryCommandInput, batchCallback?: (rows: R[]) => Promise<any>) {
   const client = initDdbClient();
   try {
-    let result = await client.send(new QueryCommand(query));
+    let result: QueryCommandOutput | undefined = undefined;
+    let items: QueryCommandOutput["Items"] = [];
+    const stats: Partial<QueryCommandOutput> = {};
 
-    if (result?.LastEvaluatedKey && !query.ExclusiveStartKey) {
-      let items = result.Items || [];
-      while (result.LastEvaluatedKey) {
-        result = await client.send(new QueryCommand({ ...query, ExclusiveStartKey: result.LastEvaluatedKey }));
-        items = items.concat(result.Items || []);
-        if (query?.Limit && items.length >= query.Limit) {
-          break;
-        }
+    do {
+      // If result exists, set ExclusiveStartKey for pagination
+      if (result?.LastEvaluatedKey) {
+        query.ExclusiveStartKey = result.LastEvaluatedKey;
       }
+
+      // Sending query to the client and waiting for the result
+      result = await client.send(new QueryCommand(query));
+
+      if (batchCallback) {
+        await batchCallback(result.Items as R[]);
+        result.Items = undefined;
+      } else {
+        // Concatenating the retrieved items
+        items = items.concat(result.Items || []);
+      }
+
+      mergeCapacityStats(stats, result);
+
+      // Breaking the loop if items length reaches the query limit
+      if (query?.Limit && items.length >= query.Limit) {
+        break;
+      }
+    } while (result.LastEvaluatedKey); // Continue while there is a LastEvaluatedKey
+
+    // Updating the result items with the concatenated items array
+    if (result) {
       result.Items = items;
     }
 
@@ -25,8 +45,8 @@ export async function handleQueryCommand<R>(query: QueryCommandInput) {
     function toJs<P>(transform: (row: R) => R | P): (R | P)[];
 
     function toJs<P>(transform?: (row: R) => R | P) {
-      return result.Items?.length
-        ? result.Items.map((row) => {
+      return result?.Items && result.Items.length > 0
+        ? result?.Items.map((row) => {
             const result = unmarshall(row) as R;
             return transform ? transform(result) : result;
           })
@@ -35,6 +55,7 @@ export async function handleQueryCommand<R>(query: QueryCommandInput) {
 
     return {
       ...result,
+      ...stats,
       toJs,
     };
   } catch (e) {
@@ -48,6 +69,7 @@ export async function handleQueryCommand<R>(query: QueryCommandInput) {
  * @param TableName
  * @param IndexName
  * @param params
+ * @param batchCallback
  */
 export async function queryTableIndex<R>(
   TableName: QueryCommandInput["TableName"],
@@ -56,6 +78,7 @@ export async function queryTableIndex<R>(
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
   },
+  batchCallback?: (rows: R[]) => Promise<any>,
 ) {
   const query: QueryCommandInput = params
     ? getQueryExpression(
@@ -70,12 +93,13 @@ export async function queryTableIndex<R>(
         IndexName,
       };
 
-  return handleQueryCommand<R>(query);
+  return handleQueryCommand<R>(query, batchCallback);
 }
 
 /**
  * @param TableName
  * @param params
+ * @param batchCallback
  */
 export async function queryTable<R>(
   TableName: QueryCommandInput["TableName"],
@@ -83,6 +107,7 @@ export async function queryTable<R>(
     keyCondExpressionMap?: KeyCondExpressionMap;
     filterExpressionMap?: FilterExpressionMap;
   },
+  batchCallback?: (rows: R[]) => Promise<any>,
 ) {
   const query: QueryCommandInput = params
     ? getQueryExpression(
@@ -95,5 +120,5 @@ export async function queryTable<R>(
         TableName,
       };
 
-  return handleQueryCommand<R>(query);
+  return handleQueryCommand<R>(query, batchCallback);
 }

@@ -2,7 +2,10 @@ import {
   BatchWriteItemCommand,
   BatchWriteItemCommandOutput,
   BatchWriteItemInput,
+  Capacity,
+  ConsumedCapacity,
   QueryCommandInput,
+  QueryCommandOutput,
   WriteRequest,
 } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
@@ -356,4 +359,64 @@ export function getConditionExpression<T extends {}>(row: T, condExps?: Conditio
       Object.keys(expressionAttributeValues).length > 0 ? expressionAttributeValues : undefined,
     ExpressionAttributeNames,
   };
+}
+
+export function mergeCapacityStats(stats: Partial<QueryCommandOutput>, result: QueryCommandOutput) {
+  if (stats) {
+    stats.Count = (stats.Count || 0) + (result.Count || 0);
+    stats.ScannedCount = (stats.ScannedCount || 0) + (result.ScannedCount || 0);
+
+    if (!stats.ConsumedCapacity) {
+      stats.ConsumedCapacity = result.ConsumedCapacity;
+    } else if (result.ConsumedCapacity) {
+      stats.ConsumedCapacity = mergeConsumedCapacity(stats.ConsumedCapacity, result.ConsumedCapacity);
+    }
+  }
+}
+
+function mergeConsumedCapacity(statsCap: ConsumedCapacity, resultCap: ConsumedCapacity): ConsumedCapacity {
+  if (!statsCap) return resultCap;
+
+  const merged: ConsumedCapacity = {
+    ...statsCap,
+    CapacityUnits: (statsCap.CapacityUnits || 0) + (resultCap.CapacityUnits || 0),
+    ReadCapacityUnits: (statsCap.ReadCapacityUnits || 0) + (resultCap.ReadCapacityUnits || 0),
+    WriteCapacityUnits: (statsCap.WriteCapacityUnits || 0) + (resultCap.WriteCapacityUnits || 0),
+  };
+
+  merged.Table = mergeCapacity(statsCap.Table, resultCap.Table);
+
+  merged.LocalSecondaryIndexes = mergeIndexCapacities(statsCap.LocalSecondaryIndexes, resultCap.LocalSecondaryIndexes);
+  merged.GlobalSecondaryIndexes = mergeIndexCapacities(
+    statsCap.GlobalSecondaryIndexes,
+    resultCap.GlobalSecondaryIndexes,
+  );
+
+  return merged;
+}
+
+function mergeCapacity(statsCap: Capacity | undefined, resultCap: Capacity | undefined): Capacity | undefined {
+  if (!statsCap || !resultCap) return statsCap || resultCap;
+
+  return {
+    ReadCapacityUnits: (statsCap.ReadCapacityUnits || 0) + (resultCap.ReadCapacityUnits || 0),
+    WriteCapacityUnits: (statsCap.WriteCapacityUnits || 0) + (resultCap.WriteCapacityUnits || 0),
+    CapacityUnits: (statsCap.CapacityUnits || 0) + (resultCap.CapacityUnits || 0),
+  };
+}
+
+function mergeIndexCapacities(
+  statsIndexes: Record<string, Capacity> | undefined,
+  resultIndexes: Record<string, Capacity> | undefined,
+): Record<string, Capacity> | undefined {
+  if (!statsIndexes || !resultIndexes) return statsIndexes || resultIndexes;
+
+  const mergedIndexes: Record<string, Capacity> = { ...statsIndexes };
+
+  for (const index in resultIndexes) {
+    const capacity = mergeCapacity(mergedIndexes[index], resultIndexes[index]);
+    if (capacity) mergedIndexes[index as keyof typeof resultIndexes] = capacity;
+  }
+
+  return mergedIndexes;
 }
