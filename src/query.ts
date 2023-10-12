@@ -1,10 +1,18 @@
-import { Capacity, QueryCommand, QueryCommandInput, QueryCommandOutput } from "@aws-sdk/client-dynamodb";
+import type { QueryCommandInput, QueryCommandOutput } from "@aws-sdk/client-dynamodb";
+import { QueryCommand } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { initDdbClient } from "./client";
 import { FilterExpressionMap, KeyCondExpressionMap } from "./types";
 import { consoleError, getQueryExpression, mergeCapacityStats } from "./utils";
 
-export async function handleQueryCommand<R>(query: QueryCommandInput, batchCallback?: (rows: R[]) => Promise<any>) {
+export async function handleQueryCommand<R>(
+  query: QueryCommandInput,
+  batchCallback?: (rows: R[]) => Promise<any>,
+): Promise<
+  {
+    toJs: { (): R[]; <P>(transform: (row: R) => R | P): (R | P)[] };
+  } & QueryCommandOutput
+> {
   const client = initDdbClient();
   try {
     let result: QueryCommandOutput | undefined = undefined;
