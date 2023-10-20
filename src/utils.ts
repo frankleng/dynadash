@@ -413,7 +413,7 @@ function mergeIndexCapacities(
 
   const mergedIndexes: Record<string, Capacity> = { ...statsIndexes };
 
-  for (const index in resultIndexes) {
+  for (const index in resultIndexes || {}) {
     const capacity = mergeCapacity(mergedIndexes[index], resultIndexes[index]);
     if (capacity) mergedIndexes[index as keyof typeof resultIndexes] = capacity;
   }

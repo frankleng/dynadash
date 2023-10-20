@@ -29,7 +29,7 @@ export async function handleQueryCommand<R>(
       result = await client.send(new QueryCommand(query));
 
       if (batchCallback) {
-        await batchCallback([...(result.Items || [])] as R[]);
+        await batchCallback((result.Items || []).map((row) => unmarshall(row) as R));
         result.Items = undefined;
       } else {
         // Concatenating the retrieved items
