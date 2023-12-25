@@ -4,6 +4,7 @@ import {
   BatchWriteItemInput,
   Capacity,
   ConsumedCapacity,
+  DynamoDBServiceException,
   QueryCommandInput,
   QueryCommandOutput,
   WriteRequest,
@@ -41,12 +42,13 @@ export function getExpressionFromMap(type: "FilterExpression" | "KeyConditionExp
     const ExpressionAttributeValues: { [key: string]: string | number } = {};
     const ExpressionAttributeNames: { [key: string]: string } = {};
     try {
-      for (const key in map) {
+      for (const k in map) {
+        const key = cleanAttributeName(k);
         if (map.hasOwnProperty(key)) {
           const v = map[key];
           const attribute = `#${key}`;
           const anchor = `:${key}`;
-          ExpressionAttributeNames[cleanAttributeName(attribute)] = key;
+          ExpressionAttributeNames[attribute] = key;
           if (typeof v === "undefined") {
             throw Error("Value must not be undefined in an expression.");
           }
@@ -310,7 +312,9 @@ export function getConditionExpression<T extends {}>(row: T, condExps?: Conditio
 
   if (Array.isArray(condExps)) {
     for (const condExp of condExps) {
-      const { key, op, value, func, logicOp } = condExp;
+      const { op, value, func, logicOp } = condExp;
+      let { key } = condExp;
+      key = cleanAttributeName(key);
 
       let cond;
       if (op === "IN") {
@@ -322,24 +326,24 @@ export function getConditionExpression<T extends {}>(row: T, condExps?: Conditio
           })
           .join(", ");
         cond = `(#${key} IN (${valStr}))`;
-        ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+        ExpressionAttributeNames[`#${key}`] = key;
       } else if (op === "BETWEEN") {
         cond = `(#${key} between :${key}Xaa and :${key}Xbb)`;
         expressionAttributeValues[`:${key}Xaa`] = value[0];
         expressionAttributeValues[`:${key}Xbb`] = value[1];
-        ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+        ExpressionAttributeNames[`#${key}`] = key;
       } else if (typeof op === "undefined" && func) {
         if (!op) {
           cond = `${func}(#${key})`;
-          ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+          ExpressionAttributeNames[`#${key}`] = key;
         } else {
           cond = `${func}(#${key}) ${op} :${key}Xvv`;
           expressionAttributeValues[`:${key}Xvv`] = value;
-          ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+          ExpressionAttributeNames[`#${key}`] = key;
         }
       } else {
         cond = `#${key} ${op} :${key}Xvv`;
-        ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+        ExpressionAttributeNames[`#${key}`] = key;
         expressionAttributeValues[`:${key}Xvv`] = value;
       }
 
@@ -356,12 +360,12 @@ export function getConditionExpression<T extends {}>(row: T, condExps?: Conditio
         const val = row[key];
         updateExpressions.push(`#${key} = :${key}`);
         expressionAttributeValues[`:${key}`] = val;
-        ExpressionAttributeNames[cleanAttributeName(`#${key}`)] = key;
+        ExpressionAttributeNames[`#${key}`] = key;
       }
     }
   } else {
     for (const key in row) {
-      if (ExpressionAttributeNames[cleanAttributeName(`#${key}`)]) {
+      if (ExpressionAttributeNames[`#${key}`]) {
         updateExpressions.push(`#${key} = :${key}`);
       }
     }
