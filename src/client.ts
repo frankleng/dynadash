@@ -4,11 +4,13 @@ export let ddbClientInstance: DynamoDBClient | null = null;
 
 export function initDdbClient(
   credentialDefaultProvider?: DynamoDBClientConfig["credentialDefaultProvider"],
-  maxAttempts = 5,
+  maxAttempts = 10,
+  retryMode: DynamoDBClientConfig["retryMode"] = "adaptive",
 ): DynamoDBClient {
   if (!ddbClientInstance) {
     const config: DynamoDBClientConfig = {
       maxAttempts,
+      retryMode,
     };
     if (credentialDefaultProvider) {
       config.credentialDefaultProvider = credentialDefaultProvider;
