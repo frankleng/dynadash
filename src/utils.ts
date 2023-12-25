@@ -43,8 +43,8 @@ export function getExpressionFromMap(type: "FilterExpression" | "KeyConditionExp
     const ExpressionAttributeNames: { [key: string]: string } = {};
     try {
       for (const k in map) {
-        const key = cleanAttributeName(k);
-        if (map.hasOwnProperty(key)) {
+        if (map.hasOwnProperty(k)) {
+          const key = cleanAttributeName(k);
           const v = map[key];
           const attribute = `#${key}`;
           const anchor = `:${key}`;
