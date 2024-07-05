@@ -1,10 +1,8 @@
-import {
-  BatchWriteItemCommand,
+import type {
   BatchWriteItemCommandOutput,
   BatchWriteItemInput,
   Capacity,
   ConsumedCapacity,
-  DynamoDBServiceException,
   QueryCommandInput,
   QueryCommandOutput,
   WriteRequest,
@@ -111,9 +109,10 @@ export async function batchWriteTable(
   const query: BatchWriteItemInput = {
     RequestItems,
   };
-  const client = initDdbClient();
+  const client = await initDdbClient();
   try {
-    let result: BatchWriteItemCommandOutput | null = await client.send(new BatchWriteItemCommand(query));
+    // @ts-ignore
+    let result: BatchWriteItemCommandOutput | null = await client.BatchWriteItem(query);
     if (
       retryCount < BATCH_WRITE_RETRY_THRESHOLD &&
       result.UnprocessedItems &&

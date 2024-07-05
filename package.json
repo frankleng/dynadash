@@ -1,6 +1,6 @@
 {
   "name": "dynadash",
-  "version": "1.9.22",
+  "version": "2.0.0",
   "description": "DynamoDb helpers",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
@@ -31,6 +31,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@aws-lite/dynamodb-types": "^0.3.7",
     "@types/jest": "^29.2.4",
     "@types/node": "^20.x",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
@@ -46,8 +47,11 @@
     "typescript": "^5.4.2"
   },
   "dependencies": {
+    "@aws-lite/client": "^0.21.10",
+    "@aws-lite/dynamodb": "^0.3.5",
     "@aws-sdk/client-dynamodb": "^3.535.0",
     "@aws-sdk/types": "^3.535.0",
-    "@aws-sdk/util-dynamodb": "^3.535.0"
+    "@aws-sdk/util-dynamodb": "^3.535.0",
+    "aws-lite-fetch-client": "^0.21.13"
   }
 }

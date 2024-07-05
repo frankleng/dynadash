@@ -17,9 +17,7 @@
     "isolatedModules": true,
     "strict": true,
     "declarationDir": "dist/types",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
+    "types": ["@aws-lite/dynamodb-types"],
     "outDir": "./dist"
   },
   "include": [

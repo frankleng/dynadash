@@ -1,8 +1,6 @@
-import {
-  DeleteItemCommand,
+import type {
   DeleteItemCommandOutput,
   DeleteItemInput,
-  PutItemCommand,
   PutItemCommandOutput,
   PutItemInput,
 } from "@aws-sdk/client-dynamodb";
@@ -51,11 +49,12 @@ export async function putTableRow<R>(
   data: Partial<R>,
   params?: Omit<PutItemInput, "TableName" | "Item"> & { conditionExpressionMapList?: ConditionExpressionMap },
 ): Promise<PutItemCommandOutput | null> {
-  const client = initDdbClient();
+  const client = await initDdbClient();
 
   const query = getPutItemInput(TableName, data, params);
   try {
-    const result = await client.send(new PutItemCommand(query));
+    // @ts-ignore
+    const result = await client.PutItem(query);
     return result || null;
   } catch (e) {
     consoleError(e);
@@ -70,19 +69,17 @@ export async function putTableRow<R>(
  * @param params
  */
 export async function delTableRow<R>(
-  TableName: DeleteItemInput["TableName"],
+  TableName: string,
   Key: Partial<R>,
   params?: Omit<DeleteItemInput, "TableName" | "Key">,
 ): Promise<DeleteItemCommandOutput | null> {
-  const client = initDdbClient();
+  const client = await initDdbClient();
   try {
-    const result = await client.send(
-      new DeleteItemCommand({
-        TableName,
-        Key: marshall(Key, { ...DEFAULT_MARSHALL_OPTIONS }),
-        ...params,
-      }),
-    );
+    const result = await client.DeleteItem({
+      TableName,
+      Key: marshall(Key, { ...DEFAULT_MARSHALL_OPTIONS }),
+      ...params,
+    });
     return result || null;
   } catch (e) {
     consoleError(e);

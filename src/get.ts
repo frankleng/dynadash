@@ -1,4 +1,4 @@
-import { GetItemCommand, GetItemCommandOutput, GetItemInput } from "@aws-sdk/client-dynamodb";
+import type { GetItemCommandOutput, GetItemInput } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { initDdbClient } from "./client";
 import { DEFAULT_MARSHALL_OPTIONS } from "./constants";
@@ -15,7 +15,7 @@ export async function getTableRow<R>(
   params?: Omit<GetItemInput, "TableName" | "Key"> & { projection?: string[] },
 ): Promise<GetItemCommandOutput & { toJs: () => R | null }> {
   const { projection, ...rest } = params || {};
-  const client = initDdbClient();
+  const client = await initDdbClient();
   try {
     const query: GetItemInput = {
       TableName,
@@ -23,7 +23,9 @@ export async function getTableRow<R>(
       ...rest,
     };
     if (projection) query["ProjectionExpression"] = projection.join(",");
-    const result = await client.send(new GetItemCommand(query));
+
+    // @ts-ignore
+    const result = await client.GetItem(query);
     return { ...result, toJs: () => (result.Item ? (unmarshall(result.Item) as R) : null) };
   } catch (e) {
     consoleError(e);
