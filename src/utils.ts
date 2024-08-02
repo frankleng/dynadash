@@ -130,7 +130,7 @@ export async function batchWriteTable(
       Object.keys(result.UnprocessedItems).length
     ) {
       console.log("Unprocessed Items:", result.UnprocessedItems);
-      throw `Batch Write failed to ${process.env.ORDER_SUMMARY_TABLE_NAME}`;
+      throw `Batch Write failed`;
     }
     return result;
   } catch (e) {
